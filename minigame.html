@@ -56,21 +56,61 @@
 
     /* ── AUTH ── */
     .auth-hero {
-      text-align: center; padding: 32px 0 24px;
+      text-align: center; padding: 28px 0 20px; position: relative;
     }
-    .auth-hero .ball { font-size: 56px; display: block; margin-bottom: 12px; }
+    .auth-hero .ball { font-size: 52px; display: block; margin-bottom: 10px; }
     .auth-hero h1 { font-size: 20px; font-weight: 900; line-height: 1.3; }
     .auth-hero p { font-size: 13px; color: var(--text2); margin-top: 6px; }
-    .auth-tabs {
-      display: flex; background: var(--card); border-radius: var(--r);
-      padding: 4px; margin-bottom: 20px; gap: 4px;
+    #admin-entry-btn {
+      position: absolute; top: 28px; right: 0;
+      background: none; border: 1px solid var(--border);
+      border-radius: 8px; color: var(--text2);
+      font-size: 11px; font-weight: 700; padding: 5px 10px; cursor: pointer;
     }
-    .auth-tab {
-      flex: 1; padding: 10px; background: none; border: none;
-      color: var(--text2); font-size: 14px; font-weight: 700;
-      border-radius: 10px; cursor: pointer; transition: all .15s;
+
+    /* Player picker grid */
+    .player-grid {
+      display: grid; grid-template-columns: 1fr 1fr;
+      gap: 10px; margin-top: 8px;
     }
-    .auth-tab.active { background: var(--accent); color: #000; }
+    .player-tile {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: var(--r); padding: 18px 12px;
+      text-align: center; cursor: pointer;
+      transition: border-color .15s, background .15s;
+      position: relative;
+    }
+    .player-tile:active { background: var(--card2); }
+    .player-tile.approved { border-color: var(--border); }
+    .player-tile.approved:hover { border-color: var(--accent); }
+    .player-tile.pending { opacity: .55; cursor: default; }
+    .player-tile .avatar {
+      width: 48px; height: 48px; border-radius: 50%;
+      background: linear-gradient(135deg, #163520, #1e4a2a);
+      border: 2px solid var(--border);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 20px; font-weight: 900; margin: 0 auto 10px;
+      color: var(--accent);
+    }
+    .player-tile.pending .avatar { border-color: var(--text2); color: var(--text2); }
+    .player-tile .tile-name { font-size: 13px; font-weight: 800; line-height: 1.3; }
+    .player-tile .tile-status {
+      font-size: 10px; font-weight: 700; margin-top: 5px;
+      padding: 2px 8px; border-radius: 8px; display: inline-block;
+    }
+    .tile-status.ok  { background: rgba(0,230,118,.12); color: var(--green); }
+    .tile-status.wait{ background: rgba(255,107,53,.12); color: var(--accent2); }
+    .register-tile {
+      background: none; border: 2px dashed var(--border);
+      border-radius: var(--r); padding: 18px 12px;
+      text-align: center; cursor: pointer;
+      transition: border-color .15s;
+    }
+    .register-tile:hover { border-color: var(--accent); }
+    .register-tile .plus { font-size: 28px; color: var(--text2); margin-bottom: 8px; }
+    .register-tile .tile-name { font-size: 13px; font-weight: 800; color: var(--text2); }
+
+    /* Auth form (register) */
     .auth-form { display: flex; flex-direction: column; gap: 12px; }
     .auth-form input {
       width: 100%; padding: 15px 16px;
@@ -92,13 +132,37 @@
       border-radius: var(--r); color: var(--text2);
       font-size: 14px; cursor: pointer; margin-top: 4px;
     }
-    .pending-box {
-      background: var(--card); border: 1px solid var(--border);
-      border-radius: var(--r); padding: 24px; text-align: center;
+
+    /* Password modal */
+    #pwd-modal-overlay {
+      display: none; position: fixed; inset: 0; z-index: 300;
+      background: rgba(0,0,0,.75); backdrop-filter: blur(4px);
+      align-items: flex-end; justify-content: center;
     }
-    .pending-box .icon { font-size: 40px; margin-bottom: 12px; display: block; }
-    .pending-box h3 { font-size: 18px; font-weight: 800; margin-bottom: 8px; }
-    .pending-box p { font-size: 14px; color: var(--text2); }
+    #pwd-modal-overlay.open { display: flex; }
+    #pwd-modal-box {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 24px 24px 0 0; padding: 28px 20px 40px;
+      width: 100%; max-width: 480px;
+    }
+    #pwd-modal-box .pm-avatar {
+      width: 64px; height: 64px; border-radius: 50%;
+      background: linear-gradient(135deg, #163520, #1e4a2a);
+      border: 2px solid var(--accent);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 26px; font-weight: 900; color: var(--accent);
+      margin: 0 auto 12px;
+    }
+    #pwd-modal-box h3 { text-align: center; font-size: 18px; font-weight: 900; margin-bottom: 4px; }
+    #pwd-modal-box .pm-sub { text-align: center; font-size: 12px; color: var(--text2); margin-bottom: 20px; }
+    #pwd-modal-input {
+      width: 100%; padding: 16px; font-size: 18px; letter-spacing: 3px;
+      background: var(--card2); border: 1px solid var(--border);
+      border-radius: var(--r); color: var(--text); text-align: center;
+      margin-bottom: 12px;
+    }
+    #pwd-modal-input:focus { outline: none; border-color: var(--accent); }
+    #pwd-error { color: var(--red); font-size: 13px; font-weight: 700; text-align: center; margin-bottom: 10px; min-height: 20px; }
 
     /* ── SECTION TITLE ── */
     .section-title {
@@ -312,43 +376,45 @@
 
 <!-- ══════════════ VIEW: AUTH ══════════════ -->
 <div id="view-auth" class="view active">
-  <div class="auth-hero">
-    <span class="ball">🏆</span>
-    <h1>Đoàn thanh niên<br>vui Worldcup 2026</h1>
-    <p>Dự đoán tỷ số – Thách đấu cùng đồng đội</p>
+
+  <!-- PLAYER PICKER -->
+  <div id="picker-wrap">
+    <div class="auth-hero">
+      <span class="ball">🏆</span>
+      <h1>Đoàn thanh niên<br>vui Worldcup 2026</h1>
+      <p>Chọn tên của bạn để bắt đầu</p>
+      <button id="admin-entry-btn" onclick="showView('admin')">⚙️ Admin</button>
+    </div>
+    <div class="player-grid" id="player-grid"></div>
   </div>
 
-  <!-- PENDING STATE -->
-  <div id="pending-box" class="pending-box" style="display:none">
-    <span class="icon">⏳</span>
-    <h3>Chờ admin duyệt</h3>
-    <p>Tài khoản của bạn đang chờ được admin phê duyệt.<br>Vui lòng thử lại sau.</p>
-    <button class="btn-secondary" onclick="checkApproval()" style="margin-top:16px">🔄 Kiểm tra lại</button>
-    <button class="btn-secondary" onclick="clearSession()" style="margin-top:8px">Đăng xuất</button>
-  </div>
-
-  <!-- AUTH FORM -->
-  <div id="auth-form-wrap">
-    <div class="auth-tabs">
-      <button class="auth-tab active" id="tab-login" onclick="switchTab('login')">Đăng nhập</button>
-      <button class="auth-tab" id="tab-register" onclick="switchTab('register')">Đăng ký</button>
+  <!-- REGISTER FORM -->
+  <div id="register-wrap" style="display:none">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:20px;padding-top:16px">
+      <button onclick="showPicker()" style="background:none;border:none;color:var(--text2);font-size:22px;cursor:pointer;padding:0">←</button>
+      <h2 style="font-size:18px;font-weight:900">Tạo tài khoản</h2>
     </div>
-
-    <!-- LOGIN -->
-    <div id="form-login" class="auth-form">
-      <input type="text" id="login-name" placeholder="Họ và tên" autocomplete="name" />
-      <input type="password" id="login-pwd" placeholder="Mật khẩu" />
-      <button class="btn-primary" onclick="doLogin()">Đăng nhập</button>
-    </div>
-
-    <!-- REGISTER -->
-    <div id="form-register" class="auth-form" style="display:none">
+    <div class="auth-form">
       <input type="text" id="reg-name" placeholder="Họ và tên đầy đủ" autocomplete="name" />
-      <input type="password" id="reg-pwd" placeholder="Đặt mật khẩu" />
+      <input type="password" id="reg-pwd" placeholder="Đặt mật khẩu (tối thiểu 4 ký tự)" />
       <input type="password" id="reg-pwd2" placeholder="Nhập lại mật khẩu" />
-      <button class="btn-primary" onclick="doRegister()">Tạo tài khoản</button>
-      <p style="font-size:12px;color:var(--text2);text-align:center;margin-top:4px">Sau khi đăng ký, admin sẽ duyệt tài khoản của bạn</p>
+      <button class="btn-primary" onclick="doRegister()">✅ Gửi đăng ký</button>
+      <p style="font-size:12px;color:var(--text2);text-align:center">Admin sẽ duyệt tài khoản trước khi bạn tham gia được</p>
     </div>
+  </div>
+
+</div>
+
+<!-- ══════════════ PASSWORD MODAL ══════════════ -->
+<div id="pwd-modal-overlay" onclick="closePwdModal(event)">
+  <div id="pwd-modal-box">
+    <div class="pm-avatar" id="pm-avatar"></div>
+    <h3 id="pm-name"></h3>
+    <p class="pm-sub">Nhập mật khẩu để vào</p>
+    <input type="password" id="pwd-modal-input" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')doPwdLogin()" />
+    <div id="pwd-error"></div>
+    <button class="btn-primary" onclick="doPwdLogin()">Vào ▶</button>
+    <button class="btn-secondary" onclick="closePwdModal()">Huỷ</button>
   </div>
 </div>
 
@@ -417,7 +483,7 @@
       <input type="number" id="pred2" min="0" max="20" value="0" />
     </div>
     <button class="btn-primary" onclick="submitPred()">✅ Xác nhận</button>
-    <button class="btn-secondary" onclick="closeModal()">Huỷ</button>
+    <button class="btn-secondary" onclick="closeModal(null)">Huỷ</button>
   </div>
 </div>
 
@@ -611,16 +677,7 @@ function initFirebase() {
   } catch(e) { showToast('⚠️ Lỗi kết nối Firebase'); }
 }
 function onDataUpdate() {
-  // Re-check approval nếu đang chờ
-  const sid = localStorage.getItem('mg_userId');
-  if (sid && users[sid]) {
-    const u = users[sid];
-    if (u.approved && (!currentUser || !currentUser.approved)) {
-      currentUser = {id: sid, name: u.name, approved: true};
-      enterApp();
-      return;
-    }
-  }
+  renderPlayerPicker();
   renderCurrentView();
 }
 async function fbSet(path, val) {
@@ -631,84 +688,122 @@ async function fbPush(path, val) {
 }
 
 // ══════════════════════════════════════════════
-//  AUTH
+//  AUTH – PLAYER PICKER
 // ══════════════════════════════════════════════
-function switchTab(tab) {
-  document.getElementById('tab-login').classList.toggle('active', tab==='login');
-  document.getElementById('tab-register').classList.toggle('active', tab==='register');
-  document.getElementById('form-login').style.display = tab==='login' ? 'flex' : 'none';
-  document.getElementById('form-register').style.display = tab==='register' ? 'flex' : 'none';
+function getInitials(name) {
+  const parts = name.trim().split(' ');
+  if (parts.length === 1) return parts[0][0].toUpperCase();
+  return parts[parts.length - 1][0].toUpperCase();
+}
+
+function renderPlayerPicker() {
+  const grid = document.getElementById('player-grid');
+  if (!grid) return;
+
+  const approved = Object.entries(users).filter(([,u]) => u.approved && !u.rejected);
+  const pending  = Object.entries(users).filter(([,u]) => !u.approved && !u.rejected);
+
+  let html = approved.map(([uid, u]) => `
+    <div class="player-tile approved" onclick="openPwdModal('${uid}')">
+      <div class="avatar">${getInitials(u.name)}</div>
+      <div class="tile-name">${u.name}</div>
+      <div class="tile-status ok">▶ Vào chơi</div>
+    </div>
+  `).join('');
+
+  html += pending.map(([uid, u]) => `
+    <div class="player-tile pending">
+      <div class="avatar">⏳</div>
+      <div class="tile-name">${u.name}</div>
+      <div class="tile-status wait">Chờ duyệt</div>
+    </div>
+  `).join('');
+
+  html += `
+    <div class="register-tile" onclick="showRegister()">
+      <div class="plus">＋</div>
+      <div class="tile-name">Chưa có tài khoản</div>
+    </div>
+  `;
+
+  grid.innerHTML = html;
+}
+
+function showRegister() {
+  document.getElementById('picker-wrap').style.display = 'none';
+  document.getElementById('register-wrap').style.display = 'block';
+  document.getElementById('reg-name').focus();
+}
+
+function showPicker() {
+  document.getElementById('register-wrap').style.display = 'none';
+  document.getElementById('picker-wrap').style.display = 'block';
+}
+
+// Password modal
+let loginTargetUid = null;
+function openPwdModal(uid) {
+  const u = users[uid];
+  if (!u) return;
+  loginTargetUid = uid;
+  document.getElementById('pm-avatar').textContent = getInitials(u.name);
+  document.getElementById('pm-name').textContent = u.name;
+  document.getElementById('pwd-modal-input').value = '';
+  document.getElementById('pwd-error').textContent = '';
+  document.getElementById('pwd-modal-overlay').classList.add('open');
+  setTimeout(() => document.getElementById('pwd-modal-input').focus(), 100);
+}
+function closePwdModal(e) {
+  if (e && e.type === 'click' && e.target !== document.getElementById('pwd-modal-overlay')) return;
+  document.getElementById('pwd-modal-overlay').classList.remove('open');
+  loginTargetUid = null;
+}
+async function doPwdLogin() {
+  if (!loginTargetUid) return;
+  const pwd = document.getElementById('pwd-modal-input').value;
+  if (!pwd) { document.getElementById('pwd-error').textContent = 'Vui lòng nhập mật khẩu'; return; }
+  const u = users[loginTargetUid];
+  const hash = await hashPwd(pwd);
+  if (hash !== u.pwHash) {
+    document.getElementById('pwd-error').textContent = '❌ Sai mật khẩu';
+    document.getElementById('pwd-modal-input').value = '';
+    document.getElementById('pwd-modal-input').focus();
+    return;
+  }
+  document.getElementById('pwd-modal-overlay').classList.remove('open');
+  currentUser = {id: loginTargetUid, name: u.name, approved: true};
+  localStorage.setItem('mg_userId', loginTargetUid);
+  enterApp();
 }
 
 async function doRegister() {
   const name = document.getElementById('reg-name').value.trim();
   const pwd  = document.getElementById('reg-pwd').value;
   const pwd2 = document.getElementById('reg-pwd2').value;
-  if (!name || name.length < 3) { showToast('Vui lòng nhập họ tên đầy đủ'); return; }
+  if (!name || name.length < 2) { showToast('Vui lòng nhập họ tên đầy đủ'); return; }
   if (pwd.length < 4) { showToast('Mật khẩu tối thiểu 4 ký tự'); return; }
   if (pwd !== pwd2) { showToast('Mật khẩu không khớp'); return; }
-
-  // Check trùng tên
+  if (!firebaseOK) { showToast('⚠️ Chưa kết nối được Firebase. Kiểm tra mạng và thử lại.'); return; }
   const existing = Object.values(users).find(u => u.name.toLowerCase() === name.toLowerCase());
-  if (existing) { showToast('Tên này đã được đăng ký'); return; }
+  if (existing) { showToast('Tên này đã được đăng ký rồi'); return; }
 
-  const pwHash = await hashPwd(pwd);
-  const ref = await fbPush(`${DB}/users`, {name, pwHash, approved: false, createdAt: Date.now()});
-  const uid = ref.key;
-  localStorage.setItem('mg_userId', uid);
-  localStorage.setItem('mg_userName', name);
-  showPending(name);
-}
+  const btn = document.querySelector('#register-wrap .btn-primary');
+  btn.textContent = 'Đang gửi...'; btn.disabled = true;
 
-async function doLogin() {
-  const name = document.getElementById('login-name').value.trim();
-  const pwd  = document.getElementById('login-pwd').value;
-  if (!name || !pwd) { showToast('Vui lòng nhập đầy đủ thông tin'); return; }
-
-  const pwHash = await hashPwd(pwd);
-  const entry = Object.entries(users).find(([,u]) => u.name.toLowerCase() === name.toLowerCase());
-  if (!entry) { showToast('Không tìm thấy tài khoản'); return; }
-
-  const [uid, u] = entry;
-  if (u.pwHash !== pwHash) { showToast('Sai mật khẩu'); return; }
-  if (u.rejected) { showToast('Tài khoản đã bị từ chối'); return; }
-
-  localStorage.setItem('mg_userId', uid);
-  localStorage.setItem('mg_userName', u.name);
-  currentUser = {id: uid, name: u.name, approved: u.approved};
-
-  if (u.approved) {
-    enterApp();
-  } else {
-    showPending(u.name);
+  try {
+    const pwHash = await hashPwd(pwd);
+    await fbPush(`${DB}/users`, {name, pwHash, approved: false, createdAt: Date.now()});
+    showToast('✅ Đã gửi! Chờ admin duyệt nhé');
+    document.getElementById('reg-name').value = '';
+    document.getElementById('reg-pwd').value = '';
+    document.getElementById('reg-pwd2').value = '';
+    showPicker();
+  } catch(e) {
+    showToast('❌ Lỗi: ' + (e.message || 'Không gửi được. Kiểm tra kết nối.'));
+    console.error(e);
+  } finally {
+    btn.textContent = '✅ Gửi đăng ký'; btn.disabled = false;
   }
-}
-
-function showPending(name) {
-  document.getElementById('auth-form-wrap').style.display = 'none';
-  document.getElementById('pending-box').style.display = 'block';
-}
-
-async function checkApproval() {
-  const uid = localStorage.getItem('mg_userId');
-  if (!uid || !users[uid]) { showToast('Không tìm thấy tài khoản'); return; }
-  const u = users[uid];
-  if (u.approved) {
-    currentUser = {id: uid, name: u.name, approved: true};
-    enterApp();
-  } else if (u.rejected) {
-    showToast('Tài khoản đã bị từ chối');
-  } else {
-    showToast('Vẫn chưa được duyệt');
-  }
-}
-
-function clearSession() {
-  localStorage.removeItem('mg_userId');
-  localStorage.removeItem('mg_userName');
-  currentUser = null;
-  document.getElementById('pending-box').style.display = 'none';
-  document.getElementById('auth-form-wrap').style.display = 'block';
 }
 
 function enterApp() {
@@ -722,13 +817,11 @@ function logoutPrompt() {
   if (confirm(`Đăng xuất tài khoản "${currentUser?.name}"?`)) {
     currentUser = null;
     localStorage.removeItem('mg_userId');
-    localStorage.removeItem('mg_userName');
     document.getElementById('user-badge').style.display = 'none';
     document.getElementById('bottom-nav').classList.remove('show');
     document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
     document.getElementById('view-auth').classList.add('active');
-    document.getElementById('pending-box').style.display = 'none';
-    document.getElementById('auth-form-wrap').style.display = 'block';
+    showPicker();
   }
 }
 
@@ -854,7 +947,7 @@ function openModal(matchId) {
   document.getElementById('modal-overlay').classList.add('open');
 }
 function closeModal(e) {
-  if (e && e.target !== document.getElementById('modal-overlay')) return;
+  if (e && e.type === 'click' && e.target !== document.getElementById('modal-overlay')) return;
   document.getElementById('modal-overlay').classList.remove('open');
   activeMatchId = null;
 }
@@ -1043,22 +1136,16 @@ function renderAdminPreds() {
 //  INIT
 // ══════════════════════════════════════════════
 window.addEventListener('DOMContentLoaded', () => {
+  renderPlayerPicker(); // hiện ô đăng ký ngay, không chờ Firebase
   initFirebase();
 
-  // Khôi phục session
+  // Khôi phục session nếu đã đăng nhập trước đó
   const uid = localStorage.getItem('mg_userId');
   if (uid) {
-    // Đợi Firebase load xong (onDataUpdate sẽ xử lý)
     setTimeout(() => {
-      if (!users[uid]) return;
-      const u = users[uid];
-      currentUser = {id: uid, name: u.name, approved: u.approved};
-      if (u.approved) {
-        enterApp();
-      } else if (!u.rejected) {
-        document.getElementById('auth-form-wrap').style.display = 'none';
-        document.getElementById('pending-box').style.display = 'block';
-      }
+      if (!users[uid] || !users[uid].approved) return;
+      currentUser = {id: uid, name: users[uid].name, approved: true};
+      enterApp();
     }, 1500);
   }
 });
