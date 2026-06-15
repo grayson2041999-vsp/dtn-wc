@@ -50,6 +50,27 @@
       white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     }
 
+    /* ── WINNER BANNER (chạy ngang) ── */
+    #winner-banner {
+      display: none;
+      position: sticky; top: 0; z-index: 99;
+      background: linear-gradient(90deg, #163520, #0d2818);
+      border-bottom: 1px solid var(--gold);
+      overflow: hidden; white-space: nowrap; padding: 7px 0;
+    }
+    #winner-banner.show { display: block; }
+    #winner-banner .wb-track {
+      display: inline-block; white-space: nowrap; padding-left: 100%;
+      font-size: 13px; font-weight: 700; color: var(--gold);
+      animation: wb-scroll 20s linear infinite;
+    }
+    #winner-banner .wb-track b { color: var(--text); }
+    #winner-banner:hover .wb-track { animation-play-state: paused; }
+    @keyframes wb-scroll {
+      from { transform: translateX(0); }
+      to   { transform: translateX(-100%); }
+    }
+
     /* ── VIEWS ── */
     .view { display: none; padding: 16px; }
     .view.active { display: block; }
@@ -382,6 +403,9 @@
   <div id="user-badge" onclick="logoutPrompt()" style="display:none"></div>
 </div>
 
+<!-- WINNER BANNER (chạy ngang) -->
+<div id="winner-banner"></div>
+
 <!-- TOAST -->
 <div class="toast" id="toast"></div>
 
@@ -690,6 +714,35 @@ function initFirebase() {
 function onDataUpdate() {
   renderPlayerPicker();
   renderCurrentView();
+  renderWinnerBanner();
+}
+
+// Vinh danh người đoán trúng trận gần nhất (chạy ngang cho mọi user thấy)
+function renderWinnerBanner() {
+  const banner = document.getElementById('winner-banner');
+  if (!banner) return;
+  if (!currentUser) { banner.classList.remove('show'); return; }
+
+  // Các trận đã có kết quả, sắp xếp mới nhất trước (theo giờ thi đấu)
+  const withResult = MATCHES
+    .filter(m => results[m.id])
+    .sort((a, b) => new Date(b.kickoff) - new Date(a.kickoff));
+
+  let chosen = null, winners = [];
+  for (const m of withResult) {
+    const ws = Object.entries(users)
+      .filter(([uid, u]) => u.approved && scores[uid]?.[m.id]?.correct)
+      .map(([, u]) => u.name);
+    if (ws.length) { chosen = m; winners = ws; break; }
+  }
+
+  if (!chosen) { banner.classList.remove('show'); return; }
+
+  const actual = results[chosen.id];
+  const names = winners.join(', ');
+  const msg = `🎉 Chúc mừng <b>${names}</b> đã đoán trúng tỷ số ${actual} trận ${chosen.team1} vs ${chosen.team2}! 🏆 Quá đỉnh, tiếp tục phát huy nhé!`;
+  banner.innerHTML = `<div class="wb-track">${msg}</div>`;
+  banner.classList.add('show');
 }
 async function fbSet(path, val) {
   if (firebaseOK) await db.ref(path).set(val);
@@ -822,6 +875,7 @@ function enterApp() {
   document.getElementById('user-badge').style.display = 'block';
   document.getElementById('bottom-nav').classList.add('show');
   showView('matches');
+  renderWinnerBanner();
 }
 
 function logoutPrompt() {
@@ -830,6 +884,7 @@ function logoutPrompt() {
     localStorage.removeItem('mg_userId');
     document.getElementById('user-badge').style.display = 'none';
     document.getElementById('bottom-nav').classList.remove('show');
+    document.getElementById('winner-banner').classList.remove('show');
     document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
     document.getElementById('view-auth').classList.add('active');
     showPicker();
