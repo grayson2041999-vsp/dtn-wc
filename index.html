@@ -752,6 +752,11 @@
         </div>
       </div>
     </div>
+    <!-- x2: nhân đôi thưởng -->
+    <div id="x2-section">
+      <button id="x2-btn" class="heart-btn" style="display:none;border-color:var(--gold);background:rgba(255,215,0,.08);color:var(--gold)" onclick="activateX2()"></button>
+      <div id="x2-active" class="backup-label" style="display:none;color:var(--gold)">⚡ ĐANG DÙNG x2 — đoán đúng ăn đôi +100.000đ</div>
+    </div>
     <p class="ko-note">⚽ Chỉ tính tỷ số 90 phút chính thức · Đoán đúng +50.000đ</p>
     <button class="btn-primary" onclick="submitPred()">✅ Xác nhận</button>
     <button class="btn-secondary" onclick="closeModal(null)">Huỷ</button>
@@ -962,6 +967,13 @@ function hasStar(uid)      { return !!shop[uid]?.star; }
 function heartsOf(uid)     { return shop[uid]?.hearts || 0; }
 function spentOf(uid)      { return shop[uid]?.spent || 0; }
 function heartUsedOn(uid, mid) { return !!shop[uid]?.heartMatches?.[mid]; }
+// Trái tim miễn phí (mỗi người 1 lần)
+function heartFreeClaimed(uid) { return !!shop[uid]?.freeHeart; }
+// Vật phẩm x2 (nhân đôi tiền thưởng khi đoán đúng)
+function x2Of(uid)          { return shop[uid]?.x2 || 0; }
+function x2UsedOn(uid, mid)  { return !!shop[uid]?.x2Matches?.[mid]; }
+// Tiền thưởng khi đoán ĐÚNG 1 trận KO: dùng x2 thì gấp đôi
+function koCorrectPts(uid, mid) { return x2UsedOn(uid, mid) ? PTS_CORRECT * 2 : PTS_CORRECT; }
 // Skin con giáp
 function skinById(id) { return SKINS.find(s => s.id === id) || null; }
 function ownsSkin(uid, id) { return !!shop[uid]?.skins?.[id]; }
@@ -1406,7 +1418,7 @@ function renderMatchCard(m, resolved) {
   const myPred = getPred(m.id, currentUser.id);
   const myPred2 = getPred2(m.id, currentUser.id);
   const effPred = getEffectivePred(m.id, currentUser.id);
-  const bk = myPred2 ? ' / ' + myPred2 : '';   // tỷ số dự phòng (trái tim)
+  const bk = (myPred2 ? ' / ' + myPred2 : '') + (x2UsedOn(currentUser.id, m.id) ? ' ⚡x2' : '');   // dự phòng (❤️) + x2
   const approvedUsers = Object.entries(users).filter(([,u]) => u.approved && !u.rejected);
   const predCount = approvedUsers.filter(([uid]) => getPred(m.id, uid)).length;
   const approvedCount = approvedUsers.length;
@@ -1492,6 +1504,7 @@ function togglePreds(e, id) {
 //  PREDICT MODAL
 // ══════════════════════════════════════════════
 let useHeartThisSubmit = false; // đang kích hoạt trái tim cho lần lưu này
+let useX2ThisSubmit = false;    // đang kích hoạt x2 cho lần lưu này
 function openModal(matchId) {
   const resolved = resolveTeams();
   const m = MATCHES.find(x=>x.id===matchId);
@@ -1529,6 +1542,25 @@ function openModal(matchId) {
     backupWrap.style.display = 'none';
     heartBtn.style.display = 'none';
   }
+
+  // ── x2: nhân đôi thưởng ──
+  useX2ThisSubmit = false;
+  const x2used = x2UsedOn(me, matchId);
+  const x2avail = x2Of(me);
+  const x2Btn = document.getElementById('x2-btn');
+  const x2Active = document.getElementById('x2-active');
+  if (x2used) {
+    x2Active.style.display = 'block';
+    x2Btn.style.display = 'none';
+  } else if (x2avail > 0) {
+    x2Active.style.display = 'none';
+    x2Btn.style.display = 'block';
+    x2Btn.textContent = `⚡ Dùng x2: đoán đúng ăn đôi +100.000đ (còn ${x2avail})`;
+  } else {
+    x2Active.style.display = 'none';
+    x2Btn.style.display = 'none';
+  }
+
   document.getElementById('modal-overlay').classList.add('open');
 }
 function activateHeart() {
@@ -1537,11 +1569,18 @@ function activateHeart() {
   document.getElementById('heart-btn').style.display = 'none';
   showToast('❤️ Nhập tỷ số dự phòng rồi bấm Xác nhận');
 }
+function activateX2() {
+  useX2ThisSubmit = true;
+  document.getElementById('x2-active').style.display = 'block';
+  document.getElementById('x2-btn').style.display = 'none';
+  showToast('⚡ Đã bật x2! Đoán đúng ăn đôi 100.000đ');
+}
 function closeModal(e) {
   if (e && e.type === 'click' && e.target !== document.getElementById('modal-overlay')) return;
   document.getElementById('modal-overlay').classList.remove('open');
   activeMatchId = null;
   useHeartThisSubmit = false;
+  useX2ThisSubmit = false;
 }
 async function submitPred() {
   if (!currentUser || !activeMatchId) return;
@@ -1569,9 +1608,17 @@ async function submitPred() {
     extra = extra || ' + dự phòng';
   }
 
+  // x2: tiêu 1 vật phẩm x2 cho trận này
+  if (useX2ThisSubmit && !x2UsedOn(me, mid)) {
+    await fbSet(`${DB}/shop/${me}/x2Matches/${mid}`, true);
+    await fbSet(`${DB}/shop/${me}/x2`, Math.max(0, x2Of(me) - 1));
+    extra += ' ⚡x2';
+  }
+
   document.getElementById('modal-overlay').classList.remove('open');
   activeMatchId = null;
   useHeartThisSubmit = false;
+  useX2ThisSubmit = false;
   showToast(`✅ Đã đoán ${score}${extra}`);
   renderMatches();
 }
@@ -1588,7 +1635,7 @@ function setLbMode(el, mode) {
 }
 // Tính điểm theo từng phân hệ. Vòng bảng = trận id<73; Knockout = id>=73 (bỏ trận không tính điểm)
 function phaseStats(uid, mode) {
-  let correct = 0, wrong = 0;
+  let correct = 0, wrong = 0, x2extra = 0;
   Object.entries(scores[uid] || {}).forEach(([mid, data]) => {
     const id = Number(mid);
     const isKo = id >= 73;
@@ -1598,14 +1645,16 @@ function phaseStats(uid, mode) {
     } else {
       if (isKo) return;
     }
-    if (data.correct === true) correct++;
-    else if (data.correct === false) wrong++;
+    if (data.correct === true) {
+      correct++;
+      if (mode === 'ko' && x2UsedOn(uid, id)) x2extra += PTS_CORRECT; // x2: cộng thêm 50k → tổng 100k
+    } else if (data.correct === false) wrong++;
   });
   // Tính lại tiền theo QUY TẮC (không dùng điểm cũ đã lưu):
   // Vòng bảng: đúng +20.000 / sai -10.000 · Knockout: đúng +50.000 / sai -10.000
   const cPts = mode === 'ko' ? PTS_CORRECT : GROUP_PTS_CORRECT;
   const wPts = mode === 'ko' ? PTS_WRONG   : GROUP_PTS_WRONG;
-  let pts = correct * cPts + wrong * wPts;
+  let pts = correct * cPts + wrong * wPts + x2extra;
   const spent = mode === 'ko' ? spentOf(uid) : 0; // tiền mua vật phẩm trừ vào vòng loại trực tiếp
   let combo = 0, lucky = 0;
   if (mode === 'ko') {
@@ -1675,6 +1724,9 @@ function renderShop() {
     { type:'heart', ico:'❤️', nm:'Trái tim', price:15000, oldPrice:20000, sale:25,
       ds:'Trong 1 trận được đặt thêm 1 tỷ số dự phòng — trúng 1 trong 2 là đúng. Dùng 1 lần.',
       tag:`Đang có: ${heartsOf(me)}`, owned:false },
+    { type:'x2', ico:'⚡', nm:'Nhân đôi x2', price:20000, oldPrice:30000, sale:33,
+      ds:'Áp vào 1 trận: nếu đoán ĐÚNG được nhân đôi tiền thưởng (+100.000đ thay vì 50.000đ). Dùng 1 lần.',
+      tag:`Đang có: ${x2Of(me)}`, owned:false },
     { type:'magnifier', ico:'🔍', nm:'Kính lúp', price:10000,
       ds:'Xem được tỷ số tất cả mọi người đã đặt trong từng trận + thống kê bao nhiêu người đoán mỗi tỷ số.',
       tag:'Vĩnh viễn', owned: hasMagnifier(me) },
@@ -1690,14 +1742,18 @@ function renderShop() {
     const priceHtml = it.sale
       ? `<span class="old-price">${it.oldPrice.toLocaleString('vi-VN')}đ</span> <span style="color:var(--red)">${it.price.toLocaleString('vi-VN')}đ</span>`
       : it.tag;
+    const freeHeart = it.type === 'heart' && !heartFreeClaimed(me);
     const btn = it.owned
       ? `<button class="shop-buy owned">Đã sở hữu</button>`
-      : `<button class="shop-buy" onclick="buyItem('${it.type}')">Mua ${it.price.toLocaleString('vi-VN')}đ</button>`;
+      : freeHeart
+        ? `<button class="shop-buy" style="background:linear-gradient(135deg,var(--accent2),#ff8a50)" onclick="claimFreeHeart()">🎁 Nhận FREE</button>`
+        : `<button class="shop-buy" onclick="buyItem('${it.type}')">Mua ${it.price.toLocaleString('vi-VN')}đ</button>`;
+    const freeNote = freeHeart ? ` <span class="sale-badge" style="background:var(--accent2)">TẶNG 1 FREE</span>` : '';
     return `
       <div class="shop-item${it.sale?' on-sale':''}">
         <div class="ico">${it.ico}</div>
         <div class="info">
-          <div class="nm">${nmHtml}</div>
+          <div class="nm">${nmHtml}${freeNote}</div>
           <div class="ds">${it.ds}</div>
           <div class="price">${it.sale ? priceHtml + ' · ' + it.tag : it.tag}</div>
         </div>
@@ -1765,6 +1821,15 @@ async function claimCombo() {
   showToast('🔥 Đã nhặt Combo Streak miễn phí!');
   renderShop();
 }
+async function claimFreeHeart() {
+  if (!currentUser) return;
+  const me = currentUser.id;
+  if (heartFreeClaimed(me)) { showToast('Bạn đã nhận Trái tim miễn phí rồi'); return; }
+  await fbSet(`${DB}/shop/${me}/freeHeart`, true);
+  await fbSet(`${DB}/shop/${me}/hearts`, heartsOf(me) + 1);
+  showToast('🎁 Đã nhận 1 Trái tim miễn phí!');
+  renderShop();
+}
 async function buySkin(id) {
   if (!currentUser) return;
   const me = currentUser.id;
@@ -1806,6 +1871,7 @@ async function buyItem(type) {
   if (type === 'magnifier') { if (s.magnifier) { showToast('Bạn đã có Kính lúp rồi'); return; } price = 10000; label = 'Kính lúp'; }
   else if (type === 'star') { if (s.star) { showToast('Bạn đã có Ngôi sao rồi'); return; } price = 10000; label = 'Ngôi sao'; }
   else if (type === 'heart') { price = 15000; label = 'Trái tim'; }
+  else if (type === 'x2') { price = 20000; label = 'Nhân đôi x2'; }
   else return;
 
   const voucher = hasVoucher50(me);
@@ -1817,6 +1883,7 @@ async function buyItem(type) {
   if (type === 'magnifier') await fbSet(`${DB}/shop/${me}/magnifier`, true);
   if (type === 'star')      await fbSet(`${DB}/shop/${me}/star`, true);
   if (type === 'heart')     await fbSet(`${DB}/shop/${me}/hearts`, heartsOf(me) + 1);
+  if (type === 'x2')        await fbSet(`${DB}/shop/${me}/x2`, x2Of(me) + 1);
 
   showToast(`✅ Đã mua ${label} (−${price.toLocaleString('vi-VN')}đ)`);
   renderShop();
@@ -1988,8 +2055,8 @@ async function backfillUser(uid) {
     const pred = getPred(m.id, uid) || DEFAULT_SCORE;
     const pred2 = getPred2(m.id, uid);
     const ok = (pred === results[m.id]) || (!!pred2 && pred2 === results[m.id]);
-    const pts = ok ? PTS_CORRECT : PTS_WRONG;
-    const predLabel = pred2 ? `${pred} / ${pred2}` : pred;
+    const pts = ok ? koCorrectPts(uid, m.id) : PTS_WRONG;
+    const predLabel = (pred2 ? `${pred} / ${pred2}` : pred) + (x2UsedOn(uid, m.id) ? ' ⚡x2' : '');
     await fbSet(`${DB}/scores/${uid}/${m.id}`, {predicted: predLabel, actual: results[m.id], correct: ok, points: pts});
   }
 }
@@ -2008,8 +2075,8 @@ async function recalculateAll() {
       const pred = getEffectivePred(m.id, uid) || DEFAULT_SCORE;
       const pred2 = getPred2(m.id, uid);
       const ok = (pred === results[m.id]) || (!!pred2 && pred2 === results[m.id]);
-      const pts = ok ? PTS_CORRECT : PTS_WRONG;
-      const predLabel = pred2 ? `${pred} / ${pred2}` : pred;
+      const pts = ok ? koCorrectPts(uid, m.id) : PTS_WRONG;
+      const predLabel = (pred2 ? `${pred} / ${pred2}` : pred) + (x2UsedOn(uid, m.id) ? ' ⚡x2' : '');
       await fbSet(`${DB}/scores/${uid}/${m.id}`, {predicted: predLabel, actual: results[m.id], correct: ok, points: pts});
     }
   }
@@ -2115,8 +2182,8 @@ async function adminSaveResult() {
     const pred = getEffectivePred(id, uid) || DEFAULT_SCORE;
     const pred2 = getPred2(id, uid);
     const ok = (pred === actual) || (!!pred2 && pred2 === actual);
-    const pts = ok ? PTS_CORRECT : PTS_WRONG;
-    const predLabel = pred2 ? `${pred} / ${pred2}` : pred;
+    const pts = ok ? koCorrectPts(uid, id) : PTS_WRONG;
+    const predLabel = (pred2 ? `${pred} / ${pred2}` : pred) + (x2UsedOn(uid, id) ? ' ⚡x2' : '');
     await fbSet(`${DB}/scores/${uid}/${id}`, {predicted: predLabel, actual, correct: ok, points: pts});
     items.push({name: u.name, pred: predLabel, ok, pts});
   }
