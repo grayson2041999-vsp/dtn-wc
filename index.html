@@ -943,6 +943,13 @@ function champOdds(name) {
   for (const g of CHAMP_ODDS_LIST) if (g.teams.includes(name)) return g.x;
   return 20; // còn lại (nhóm 20x)
 }
+// Lần cược 2: tỷ lệ chỉ còn 75% so với lần 1
+function champOddsForSlot(name, slot) {
+  const base = champOdds(name);
+  return slot === '1' ? Math.round(base * 0.75 * 100) / 100 : base;
+}
+// Tỷ lệ hiển thị theo lượt cược hiện tại của người dùng
+function champEffOdds(name) { return champOddsForSlot(name, champOpenSlot(currentUser?.id)); }
 function champFlag(name) { return CHAMP_FLAG[name] || "🏳️"; }
 
 // ══════════════════════════════════════════════
@@ -2208,12 +2215,12 @@ function renderChamp() {
 
   // Lưới chọn đội (ẩn/hiện) — chỉ khi còn quyền cược
   if (canMore && champGridOpen) {
-    html += `<p class="section-title" style="margin-top:18px">Chọn 1 đội (còn ${alive.length} đội)</p>
+    html += `<p class="section-title" style="margin-top:18px">Chọn 1 đội (còn ${alive.length} đội)${ph===2?' · tỷ lệ lần 2 = 75%':''}</p>
       <div class="champ-grid">${alive.map(t => `
         <div class="champ-team" onclick="openChampBet('${t.replace(/'/g,"\\'")}')">
           <div class="ct-flag">${champFlag(t)}</div>
           <div class="ct-name">${t}</div>
-          <div class="ct-odds">${champOdds(t)}x</div>
+          <div class="ct-odds">${champEffOdds(t)}x</div>
         </div>`).join('')}</div>`;
   }
 
@@ -2257,20 +2264,20 @@ function openChampBet(team) {
     return;
   }
   champPickTeam = team;
-  const odds = champOdds(team);
+  const odds = champEffOdds(team);
   document.getElementById('champ-pick-flag').textContent = champFlag(team);
   document.getElementById('champ-pick-name').textContent = team;
-  document.getElementById('champ-pick-odds').textContent = `Tỷ lệ thắng: ${odds}x`;
+  document.getElementById('champ-pick-odds').textContent = `Tỷ lệ thắng: ${odds}x` + (champOpenSlot(currentUser.id) === '1' ? ' (lần 2 = 75%)' : '');
   document.getElementById('champ-stake').value = 10000;
   updateChampPayout();
   document.getElementById('champ-stake').oninput = updateChampPayout;
   document.getElementById('champ-modal-overlay').classList.add('open');
 }
 function updateChampPayout() {
-  const odds = champOdds(champPickTeam);
+  const odds = champEffOdds(champPickTeam);
   const stake = parseInt(document.getElementById('champ-stake').value) || 0;
   document.getElementById('champ-payout').textContent =
-    `Nếu trúng nhận: ${(stake*odds).toLocaleString('vi-VN')}đ`;
+    `Nếu trúng nhận: ${Math.round(stake*odds).toLocaleString('vi-VN')}đ`;
 }
 function closeChampModal(e) {
   if (e && e.type === 'click' && e.target !== document.getElementById('champ-modal-overlay')) return;
@@ -2284,7 +2291,7 @@ async function confirmChampBet() {
   const stake = parseInt(document.getElementById('champ-stake').value) || 0;
   if (stake <= 0) { showToast('Nhập số tiền cược hợp lệ'); return; }
   if (stake > CHAMP_MAX_STAKE) { showToast('Cược tối đa 30.000đ'); return; }
-  const odds = champOdds(champPickTeam);
+  const odds = champOddsForSlot(champPickTeam, slot);
   await fbSet(`${DB}/champ/${me}/${slot}`, {team: champPickTeam, stake, odds});
   document.getElementById('champ-modal-overlay').classList.remove('open');
   champGridOpen = false;
