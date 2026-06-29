@@ -510,28 +510,33 @@
       border-radius: 20px; padding: 22px 20px 26px; width: 92%; max-width: 360px; text-align: center;
     }
     #wheel-box h3 { font-size: 18px; font-weight: 900; margin-bottom: 2px; }
-    #wheel-wrap { position: relative; width: 240px; height: 240px; margin: 16px auto 10px; }
-    #wheel {
-      width: 240px; height: 240px; border-radius: 50%;
-      border: 6px solid var(--gold); position: relative;
-      transition: transform 4s cubic-bezier(.17,.67,.16,1);
-      box-shadow: 0 0 22px rgba(255,215,0,.4);
+    /* Lưới ô lì xì 3x3 (8 ô quà + ô giữa) */
+    #wheel-grid {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;
+      margin: 16px auto 10px; max-width: 300px;
     }
-    .wheel-emoji {
-      position: absolute; top: 50%; left: 50%; margin: -12px 0 0 -12px;
-      width: 24px; height: 24px; font-size: 20px; line-height: 24px; text-align: center;
-      transform-origin: center; text-shadow: 0 1px 2px rgba(0,0,0,.6);
+    .lx-cell {
+      background: var(--card2); border: 2px solid var(--border); border-radius: 12px;
+      padding: 10px 4px; display: flex; flex-direction: column; align-items: center; gap: 3px;
+      transition: transform .08s, box-shadow .08s, border-color .08s;
     }
-    #wheel-pointer {
-      position: absolute; top: -14px; left: 50%; transform: translateX(-50%);
-      color: var(--gold); font-size: 26px; z-index: 2; filter: drop-shadow(0 1px 2px #000);
+    .lx-cell .e { font-size: 24px; line-height: 1; }
+    .lx-cell .l { font-size: 10px; font-weight: 800; color: var(--text2); text-align: center; line-height: 1.2; }
+    .lx-cell.lit {
+      border-color: var(--gold); background: rgba(255,215,0,.18);
+      box-shadow: 0 0 16px rgba(255,215,0,.6); transform: scale(1.06);
     }
-    #wheel-hub {
-      position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
-      width: 36px; height: 36px; border-radius: 50%; background: var(--card2);
-      border: 3px solid var(--gold); z-index: 2; font-size: 18px; line-height: 32px;
+    .lx-cell.win {
+      border-color: var(--gold); background: rgba(255,215,0,.28);
+      box-shadow: 0 0 22px rgba(255,215,0,.85); animation: lxWin .5s ease 3;
     }
-    #wheel-result { min-height: 26px; margin: 6px 0 12px; }
+    @keyframes lxWin { 0%,100% { transform: scale(1.06); } 50% { transform: scale(1.14); } }
+    .lx-center {
+      background: linear-gradient(135deg, var(--gold), #ffae00); color: #000;
+      border: none; border-radius: 12px; display: flex; align-items: center; justify-content: center;
+      font-size: 26px;
+    }
+    #wheel-result { min-height: 26px; margin: 6px 0 12px; font-weight: 800; }
 
     /* ── POPUP QUẢNG CÁO ── */
     #promo-overlay {
@@ -775,14 +780,11 @@
 <div id="wheel-overlay" onclick="closeWheel(event)">
   <div id="wheel-box">
     <h3>🎁 Lì xì may mắn</h3>
-    <p class="modal-sub" style="font-size:12px;color:var(--text2)">Mỗi lượt 7.000đ · trúng gì nhận nấy</p>
-    <div id="wheel-wrap">
-      <div id="wheel-pointer">▼</div>
-      <div id="wheel"></div>
-      <div id="wheel-hub">🎯</div>
-    </div>
+    <p class="modal-sub" style="font-size:12px;color:var(--text2)">Mỗi lượt 7.000đ · đèn nhảy quanh các ô, dừng ô nào trúng ô đó</p>
+    <div id="wheel-grid"></div>
     <div id="wheel-result"></div>
     <button class="btn-primary" id="wheel-spin-btn" onclick="spinWheel()">Quay</button>
+    <button class="btn-secondary" id="wheel-try-btn" onclick="trySpin()" style="margin-top:8px">🎮 Quay thử (miễn phí, không tính quà)</button>
     <button class="btn-secondary" onclick="closeWheel()">Đóng</button>
   </div>
 </div>
@@ -1823,30 +1825,55 @@ async function buyItem(type) {
 // ══════════════════════════════════════════════
 //  VÒNG QUAY LÌ XÌ
 // ══════════════════════════════════════════════
-let wheelDeg = 0;
-let spinning = false;
-function buildWheelFace() {
-  const seg = 360 / WHEEL.length;
-  const grad = WHEEL.map((w,i) => `${w.color} ${i*seg}deg ${(i+1)*seg}deg`).join(', ');
-  const wheel = document.getElementById('wheel');
-  wheel.style.background = `conic-gradient(${grad})`;
-  wheel.innerHTML = WHEEL.map((w,i) => {
-    const a = i*seg + seg/2;
-    return `<span class="wheel-emoji" style="transform:rotate(${a}deg) translateY(-92px) rotate(${-a}deg)">${w.emoji}</span>`;
+let rolling = false;
+// Thứ tự ô quanh viền (row-major 3x3, ô giữa là 'c'): chỉ số theo WHEEL
+const LX_ORDER = [0, 1, 2, 7, 'c', 3, 6, 5, 4];
+function buildGrid() {
+  document.getElementById('wheel-grid').innerHTML = LX_ORDER.map(o => {
+    if (o === 'c') return `<div class="lx-center">🎁</div>`;
+    const w = WHEEL[o];
+    return `<div class="lx-cell" id="lx-${o}"><div class="e">${w.emoji}</div><div class="l">${w.label}</div></div>`;
   }).join('');
+}
+function setLit(i) {
+  document.querySelectorAll('#wheel-grid .lx-cell').forEach(c => c.classList.remove('lit', 'win'));
+  const el = document.getElementById('lx-' + i);
+  if (el) el.classList.add('lit');
+}
+function markWin(i) {
+  const el = document.getElementById('lx-' + i);
+  if (el) { el.classList.remove('lit'); el.classList.add('win'); }
+}
+// Đèn nhảy quanh các ô rồi dừng ở ô targetIdx (giảm tốc dần)
+function rollTo(targetIdx, onDone) {
+  rolling = true;
+  setBtns(true);
+  const total = 4 * 8 + targetIdx; // ~4 vòng rồi dừng đúng ô
+  let k = 0;
+  (function step() {
+    setLit(k % 8);
+    if (k >= total) { markWin(targetIdx); rolling = false; setBtns(false); onDone && onDone(); return; }
+    const p = k / total;
+    const interval = 70 + p * p * 380; // 70ms → ~450ms (chậm dần)
+    k++;
+    setTimeout(step, interval);
+  })();
+}
+function setBtns(disabled) {
+  document.getElementById('wheel-spin-btn').disabled = disabled;
+  document.getElementById('wheel-try-btn').disabled = disabled;
 }
 function openWheel() {
   if (!currentUser) return;
-  buildWheelFace();
-  document.getElementById('wheel-result').innerHTML = '';
-  const me = currentUser.id;
-  const fs = freeSpinsOf(me);
+  buildGrid();
+  document.getElementById('wheel-result').innerHTML = '👉 Bấm Quay (hoặc Quay thử) để bắt đầu';
+  const fs = freeSpinsOf(currentUser.id);
   document.getElementById('wheel-spin-btn').textContent = fs > 0 ? `Quay miễn phí (còn ${fs})` : `Quay (${SPIN_PRICE.toLocaleString('vi-VN')}đ)`;
   document.getElementById('wheel-overlay').classList.add('open');
 }
 function closeWheel(e) {
   if (e && e.type === 'click' && e.target !== document.getElementById('wheel-overlay')) return;
-  if (spinning) return;
+  if (rolling) return;
   document.getElementById('wheel-overlay').classList.remove('open');
 }
 function pickOutcome() {
@@ -1854,29 +1881,27 @@ function pickOutcome() {
   const others = [0,1,2,3,4,5,6];              // 7 ô còn lại đều nhau
   return others[Math.floor(Math.random() * others.length)];
 }
+// Quay thật: trừ tiền/lượt, trúng nhận quà
 async function spinWheel() {
-  if (spinning || !currentUser) return;
+  if (rolling || !currentUser) return;
   const me = currentUser.id;
   const free = freeSpinsOf(me) > 0;
-  spinning = true;
-  const btn = document.getElementById('wheel-spin-btn');
-  btn.disabled = true;
-  document.getElementById('wheel-result').innerHTML = '';
-
-  // Trừ tiền hoặc dùng lượt miễn phí
   if (free) await fbSet(`${DB}/shop/${me}/freeSpins`, freeSpinsOf(me) - 1);
   else      await fbSet(`${DB}/shop/${me}/spent`, spentOf(me) + SPIN_PRICE);
-
+  document.getElementById('wheel-result').innerHTML = '🎰 Đang quay...';
   const idx = pickOutcome();
-  const seg = 360 / WHEEL.length;
-  const targetOrient = (360 - (idx*seg + seg/2)) % 360;       // hướng để ô idx nằm trên kim
-  const offset = (Math.random()*2 - 1) * (seg/2 - 6);          // lệch ngẫu nhiên trong ô
-  const cur = ((wheelDeg % 360) + 360) % 360;
-  wheelDeg += (360*5) + ((targetOrient - cur + 360) % 360) + offset;
-  const wheel = document.getElementById('wheel');
-  wheel.style.transform = `rotate(${wheelDeg}deg)`;
-
-  setTimeout(() => { applyOutcome(idx); spinning = false; btn.disabled = false; }, 4300);
+  rollTo(idx, () => applyOutcome(idx));
+}
+// Quay thử: KHÔNG trừ tiền, KHÔNG nhận quà
+function trySpin() {
+  if (rolling || !currentUser) return;
+  document.getElementById('wheel-result').innerHTML = '🎮 Quay thử...';
+  const idx = Math.floor(Math.random() * 8);
+  rollTo(idx, () => {
+    const w = WHEEL[idx];
+    document.getElementById('wheel-result').innerHTML =
+      `<div style="color:var(--text2)">Quay thử dừng ở: ${w.emoji} <b>${w.label}</b> — không tính tiền/quà nhé!</div>`;
+  });
 }
 async function applyOutcome(idx) {
   const me = currentUser.id;
