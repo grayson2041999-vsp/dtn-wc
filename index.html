@@ -802,16 +802,16 @@
 <div id="promo-overlay" onclick="closePromo(event)">
   <div id="promo-card">
     <button id="promo-close" onclick="closePromo()">✕</button>
-    <div class="promo-emoji">🎁🛒</div>
-    <div class="promo-tag">🔥 MIỄN PHÍ HÔM NAY</div>
-    <div class="promo-title">NHẶT VẬT PHẨM<br>MIỄN PHÍ NGAY!</div>
-    <div class="promo-desc">Vào trang <b style="color:var(--gold)">Vật phẩm</b> để nhận quà liền tay 👇</div>
+    <div class="promo-emoji">🏆👑</div>
+    <div class="promo-tag">🔥 SỰ KIỆN HOT</div>
+    <div class="promo-title">HÃY DỰ ĐOÁN<br>ĐỘI VÔ ĐỊCH NĂM NAY!</div>
+    <div class="promo-desc">Đặt cược nhà vô địch World Cup ngay 👇</div>
     <div class="promo-list">
-      🔥 <b>Combo Streak</b> — nhặt FREE<br>
-      🎁 Quay <b>Lì xì</b> trúng tới <b>+100.000đ</b><br>
-      🐲 Sắm <b>skin 12 con giáp</b> cực ngầu
+      💰 Tỷ lệ thắng tới <b>20x</b><br>
+      👑 Mỗi người được cược <b>2 lần</b><br>
+      ⏰ Nhanh tay trước khi hết hạn!
     </div>
-    <button class="promo-cta" onclick="goShopFromPromo()">🛒 VÀO NHẶT NGAY</button>
+    <button class="promo-cta" onclick="goChampFromPromo()">👑 DỰ ĐOÁN NGAY</button>
     <button class="promo-later" onclick="closePromo()">Để sau</button>
   </div>
 </div>
@@ -1437,6 +1437,10 @@ function closePromo(e) {
 function goShopFromPromo() {
   document.getElementById('promo-overlay').classList.remove('open');
   showView('shop');
+}
+function goChampFromPromo() {
+  document.getElementById('promo-overlay').classList.remove('open');
+  showView('champ');
 }
 
 function logoutPrompt() {
