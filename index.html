@@ -392,6 +392,20 @@
     #bottom-nav button .icon { font-size: 20px; }
     #bottom-nav button.active { color: var(--accent); }
 
+    /* Nổi bật nút Vật phẩm */
+    #nav-shop { color: var(--gold); font-weight: 900; position: relative; }
+    #nav-shop .icon { font-size: 26px; filter: brightness(0) invert(1) drop-shadow(0 0 7px rgba(255,255,255,.85)); animation: shopPulse 1.6s ease-in-out infinite; }
+    #nav-shop.active { color: var(--gold); }
+    #nav-shop::after {
+      content: 'HOT'; position: absolute; top: 6px; left: 50%; margin-left: 6px;
+      background: var(--red); color: #fff; font-size: 8px; font-weight: 900;
+      padding: 1px 5px; border-radius: 7px; letter-spacing: .5px;
+    }
+    @keyframes shopPulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.18); } }
+    /* Làm mờ nút Admin */
+    #nav-admin { opacity: .35; }
+    #nav-admin.active { opacity: 1; }
+
     /* ── MISC ── */
     .toast {
       position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%);
@@ -442,6 +456,13 @@
     }
     .shop-buy.owned { background: var(--card2); color: var(--text2); cursor: default; }
     .shop-buy:active { opacity: .85; }
+    .shop-item.on-sale { border-color: var(--red); box-shadow: 0 0 0 1px var(--red) inset; }
+    .sale-badge {
+      display: inline-block; background: var(--red); color: #fff;
+      font-size: 10px; font-weight: 900; padding: 1px 7px; border-radius: 8px;
+      vertical-align: middle; margin-left: 4px; letter-spacing: .3px;
+    }
+    .old-price { color: var(--text2); text-decoration: line-through; font-weight: 700; }
 
     /* Tỷ số dự phòng (trái tim) trong modal */
     #heart-section { margin-bottom: 16px; }
@@ -458,6 +479,112 @@
       background: rgba(255,215,0,.12); color: var(--gold);
     }
     .predictor-chip .pc-score { color: var(--text); font-weight: 800; margin-left: 4px; }
+
+    /* ── SKIN 12 CON GIÁP ── */
+    .skin-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .skin-card {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: var(--r); padding: 12px; text-align: center;
+    }
+    .skin-card.equipped { border-color: var(--gold); box-shadow: 0 0 0 1px var(--gold) inset; }
+    .skin-card .se { font-size: 30px; line-height: 1; }
+    .skin-card .sn { font-size: 12px; font-weight: 800; margin-top: 5px; }
+    .skin-card .sp { font-size: 11px; color: var(--gold); font-weight: 800; margin-top: 2px; }
+    .skin-card .sbtn {
+      margin-top: 9px; width: 100%; padding: 8px; border: none; border-radius: 10px;
+      font-size: 12px; font-weight: 800; cursor: pointer;
+      background: linear-gradient(135deg, var(--accent), #00b248); color: #000;
+    }
+    .skin-card .sbtn.owned    { background: var(--card2); color: var(--text); }
+    .skin-card .sbtn.equipped { background: var(--gold); color: #000; }
+
+    /* ── VÒNG QUAY LÌ XÌ ── */
+    #wheel-overlay {
+      display: none; position: fixed; inset: 0; z-index: 250;
+      background: rgba(0,0,0,.8); backdrop-filter: blur(4px);
+      align-items: center; justify-content: center;
+    }
+    #wheel-overlay.open { display: flex; }
+    #wheel-box {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 20px; padding: 22px 20px 26px; width: 92%; max-width: 360px; text-align: center;
+    }
+    #wheel-box h3 { font-size: 18px; font-weight: 900; margin-bottom: 2px; }
+    #wheel-wrap { position: relative; width: 240px; height: 240px; margin: 16px auto 10px; }
+    #wheel {
+      width: 240px; height: 240px; border-radius: 50%;
+      border: 6px solid var(--gold); position: relative;
+      transition: transform 4s cubic-bezier(.17,.67,.16,1);
+      box-shadow: 0 0 22px rgba(255,215,0,.4);
+    }
+    .wheel-emoji {
+      position: absolute; top: 50%; left: 50%; margin: -12px 0 0 -12px;
+      width: 24px; height: 24px; font-size: 20px; line-height: 24px; text-align: center;
+      transform-origin: center; text-shadow: 0 1px 2px rgba(0,0,0,.6);
+    }
+    #wheel-pointer {
+      position: absolute; top: -14px; left: 50%; transform: translateX(-50%);
+      color: var(--gold); font-size: 26px; z-index: 2; filter: drop-shadow(0 1px 2px #000);
+    }
+    #wheel-hub {
+      position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
+      width: 36px; height: 36px; border-radius: 50%; background: var(--card2);
+      border: 3px solid var(--gold); z-index: 2; font-size: 18px; line-height: 32px;
+    }
+    #wheel-result { min-height: 26px; margin: 6px 0 12px; }
+
+    /* ── POPUP QUẢNG CÁO ── */
+    #promo-overlay {
+      display: none; position: fixed; inset: 0; z-index: 400;
+      background: rgba(0,0,0,.82); backdrop-filter: blur(5px);
+      align-items: center; justify-content: center; padding: 20px;
+    }
+    #promo-overlay.open { display: flex; }
+    #promo-card {
+      width: 100%; max-width: 340px; position: relative; text-align: center;
+      background: linear-gradient(160deg, #1b3d26, #0d2818);
+      border: 2px solid var(--gold); border-radius: 24px; padding: 30px 22px 24px;
+      box-shadow: 0 0 46px rgba(255,215,0,.4);
+      animation: promoPop .45s cubic-bezier(.2,1.3,.4,1);
+      overflow: hidden;
+    }
+    #promo-card::before {
+      content: ''; position: absolute; top: -60%; left: -60%; width: 220%; height: 220%;
+      background: conic-gradient(from 0deg, transparent, rgba(255,215,0,.16), transparent 30%);
+      animation: promoSpin 6s linear infinite; pointer-events: none;
+    }
+    @keyframes promoSpin { to { transform: rotate(360deg); } }
+    @keyframes promoPop { from { transform: scale(.7); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+    #promo-card > * { position: relative; z-index: 1; }
+    .promo-emoji { font-size: 56px; line-height: 1; animation: promoFloat 2s ease-in-out infinite; }
+    @keyframes promoFloat { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-9px); } }
+    .promo-tag {
+      display: inline-block; background: var(--red); color: #fff; font-size: 11px; font-weight: 900;
+      padding: 3px 12px; border-radius: 20px; letter-spacing: 1px; margin: 10px 0 8px;
+    }
+    .promo-title {
+      font-size: 23px; font-weight: 900; line-height: 1.2; margin-bottom: 8px;
+      background: linear-gradient(90deg, #ffd700, #fff3b0, #ffae00);
+      -webkit-background-clip: text; background-clip: text; color: transparent;
+    }
+    .promo-desc { font-size: 14px; color: var(--text); line-height: 1.5; margin-bottom: 6px; }
+    .promo-list { font-size: 13px; color: var(--text2); line-height: 1.7; margin: 8px 0 18px; }
+    .promo-list b { color: var(--gold); }
+    .promo-cta {
+      width: 100%; padding: 16px; border: none; border-radius: 14px; cursor: pointer;
+      background: linear-gradient(135deg, var(--gold), #ffae00); color: #000;
+      font-size: 16px; font-weight: 900; box-shadow: 0 0 20px rgba(255,215,0,.5);
+      animation: ctaPulse 1.3s ease-in-out infinite;
+    }
+    @keyframes ctaPulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.04); } }
+    .promo-later {
+      background: none; border: none; color: var(--text2); font-size: 13px;
+      margin-top: 12px; cursor: pointer; width: 100%;
+    }
+    #promo-close {
+      position: absolute; top: 10px; right: 14px; z-index: 2;
+      background: none; border: none; color: var(--text2); font-size: 22px; cursor: pointer;
+    }
   </style>
 </head>
 <body>
@@ -626,16 +753,50 @@
   </div>
 </div>
 
+<!-- ══════════════ POPUP QUẢNG CÁO ══════════════ -->
+<div id="promo-overlay" onclick="closePromo(event)">
+  <div id="promo-card">
+    <button id="promo-close" onclick="closePromo()">✕</button>
+    <div class="promo-emoji">🎁🛒</div>
+    <div class="promo-tag">🔥 MIỄN PHÍ HÔM NAY</div>
+    <div class="promo-title">NHẶT VẬT PHẨM<br>MIỄN PHÍ NGAY!</div>
+    <div class="promo-desc">Vào trang <b style="color:var(--gold)">Vật phẩm</b> để nhận quà liền tay 👇</div>
+    <div class="promo-list">
+      🔥 <b>Combo Streak</b> — nhặt FREE<br>
+      🎁 Quay <b>Lì xì</b> trúng tới <b>+100.000đ</b><br>
+      🐲 Sắm <b>skin 12 con giáp</b> cực ngầu
+    </div>
+    <button class="promo-cta" onclick="goShopFromPromo()">🛒 VÀO NHẶT NGAY</button>
+    <button class="promo-later" onclick="closePromo()">Để sau</button>
+  </div>
+</div>
+
+<!-- ══════════════ WHEEL / LÌ XÌ MODAL ══════════════ -->
+<div id="wheel-overlay" onclick="closeWheel(event)">
+  <div id="wheel-box">
+    <h3>🎁 Lì xì may mắn</h3>
+    <p class="modal-sub" style="font-size:12px;color:var(--text2)">Mỗi lượt 7.000đ · trúng gì nhận nấy</p>
+    <div id="wheel-wrap">
+      <div id="wheel-pointer">▼</div>
+      <div id="wheel"></div>
+      <div id="wheel-hub">🎯</div>
+    </div>
+    <div id="wheel-result"></div>
+    <button class="btn-primary" id="wheel-spin-btn" onclick="spinWheel()">Quay</button>
+    <button class="btn-secondary" onclick="closeWheel()">Đóng</button>
+  </div>
+</div>
+
 <!-- ══════════════ BOTTOM NAV ══════════════ -->
 <nav id="bottom-nav">
   <button onclick="showView('matches')" id="nav-matches">
     <span class="icon">🏆</span>Trận đấu
   </button>
-  <button onclick="showView('leaderboard')" id="nav-leaderboard">
-    <span class="icon">📊</span>Xếp hạng
-  </button>
   <button onclick="showView('shop')" id="nav-shop">
     <span class="icon">🛒</span>Vật phẩm
+  </button>
+  <button onclick="showView('leaderboard')" id="nav-leaderboard">
+    <span class="icon">📊</span>Xếp hạng
   </button>
   <button onclick="showView('admin')" id="nav-admin">
     <span class="icon">⚙️</span>Admin
@@ -672,6 +833,36 @@ const NO_SCORE_MATCHES = [73];  // Trận đầu Nam Phi vs Canada: KHÔNG tính
 // Quy tắc tính tiền VÒNG BẢNG: đúng +20.000 / sai -10.000 mỗi trận
 const GROUP_PTS_CORRECT = 20000;
 const GROUP_PTS_WRONG   = -10000;
+
+// 12 SKIN CON GIÁP – đồng giá 10.000đ, tên nổi bật theo màu + hình con giáp
+const SKIN_PRICE = 10000;
+const SKINS = [
+  {id:'ty',   emoji:'🐭', color:'#9fb3c8', name:'Tý · Chuột'},
+  {id:'suu',  emoji:'🐃', color:'#a1887f', name:'Sửu · Trâu'},
+  {id:'dan',  emoji:'🐯', color:'#ff9800', name:'Dần · Hổ'},
+  {id:'mao',  emoji:'🐱', color:'#c0ca33', name:'Mão · Mèo'},
+  {id:'thin', emoji:'🐲', color:'#00e5ff', name:'Thìn · Rồng'},
+  {id:'ty2',  emoji:'🐍', color:'#7cf03a', name:'Tỵ · Rắn'},
+  {id:'ngo',  emoji:'🐴', color:'#ff5252', name:'Ngọ · Ngựa'},
+  {id:'mui',  emoji:'🐐', color:'#ffd54f', name:'Mùi · Dê'},
+  {id:'than', emoji:'🐵', color:'#d4a373', name:'Thân · Khỉ'},
+  {id:'dau',  emoji:'🐔', color:'#ff4081', name:'Dậu · Gà'},
+  {id:'tuat', emoji:'🐶', color:'#b388ff', name:'Tuất · Chó'},
+  {id:'hoi',  emoji:'🐷', color:'#f48fb1', name:'Hợi · Lợn'},
+];
+
+// VÒNG QUAY LÌ XÌ – 8 ô. +100.000đ tỉ lệ 2%, 7 ô còn lại đều nhau (14%/ô)
+const SPIN_PRICE = 7000;
+const WHEEL = [
+  {type:'luck',    emoji:'🍀', label:'Chúc may mắn',    color:'#2e7d32'},
+  {type:'money',   emoji:'💵', label:'+5.000đ',  amount:5000,   color:'#1565c0'},
+  {type:'respin',  emoji:'🔄', label:'Thêm lượt quay',  color:'#6a1b9a'},
+  {type:'money',   emoji:'💰', label:'+20.000đ', amount:20000,  color:'#ad1457'},
+  {type:'skin',    emoji:'🎨', label:'Tặng 1 skin',     color:'#00838f'},
+  {type:'money',   emoji:'🪙', label:'+7.000đ',  amount:7000,   color:'#4527a0'},
+  {type:'voucher', emoji:'🎟️', label:'Voucher -50%',    color:'#ef6c00'},
+  {type:'money',   emoji:'💎', label:'+100.000đ', amount:100000, color:'#c62828'},
+];
 
 // ══════════════════════════════════════════════
 //  MATCH DATA – 32 trận VÒNG LOẠI TRỰC TIẾP WC 2026
@@ -769,8 +960,43 @@ function hasStar(uid)      { return !!shop[uid]?.star; }
 function heartsOf(uid)     { return shop[uid]?.hearts || 0; }
 function spentOf(uid)      { return shop[uid]?.spent || 0; }
 function heartUsedOn(uid, mid) { return !!shop[uid]?.heartMatches?.[mid]; }
-// Bọc tên có ngôi sao cho nổi bật
-function starWrap(uid, name) { return hasStar(uid) ? `<span class="star-name">⭐${name}</span>` : name; }
+// Skin con giáp
+function skinById(id) { return SKINS.find(s => s.id === id) || null; }
+function ownsSkin(uid, id) { return !!shop[uid]?.skins?.[id]; }
+function activeSkin(uid) { const id = shop[uid]?.skin; return id ? skinById(id) : null; }
+// Combo streak + lì xì
+function ownsCombo(uid)     { return !!shop[uid]?.combo; }
+function luckyBonusOf(uid)  { return shop[uid]?.luckyBonus || 0; }
+function freeSpinsOf(uid)   { return shop[uid]?.freeSpins || 0; }
+function skinTokensOf(uid)  { return shop[uid]?.skinTokens || 0; }
+function hasVoucher50(uid)  { return !!shop[uid]?.voucher50; }
+// Thưởng combo: đoán đúng liên tiếp (theo thứ tự trận đã có kết quả). 2 lt +20k, 3 lt +50k (cộng dồn)
+function comboBonus(uid) {
+  if (!ownsCombo(uid)) return 0;
+  let streak = 0, bonus = 0;
+  for (const m of MATCHES) {
+    if (NO_SCORE_MATCHES.includes(m.id)) continue;
+    const sc = scores[uid]?.[m.id];
+    if (!sc) continue;
+    if (sc.correct === true) {
+      streak++;
+      if (streak === 2) bonus += 20000;
+      else if (streak === 3) bonus += 30000;
+      else if (streak >= 4) bonus += 40000;
+    } else streak = 0;
+  }
+  return bonus;
+}
+// Trang trí tên: ưu tiên skin con giáp (màu + hình), cộng thêm ⭐ nếu có Ngôi sao
+function starWrap(uid, name) {
+  const sk = activeSkin(uid);
+  const star = hasStar(uid) ? '⭐' : '';
+  if (sk) {
+    return `<span style="color:${sk.color};font-weight:900;text-shadow:0 0 8px ${sk.color}80">${sk.emoji}${star}${name}</span>`;
+  }
+  if (star) return `<span class="star-name">⭐${name}</span>`;
+  return name;
+}
 // Trúng nếu tỷ số chính HOẶC tỷ số dự phòng khớp kết quả
 function predHits(matchId, uid, actual) {
   const p1 = getEffectivePred(matchId, uid);
@@ -937,10 +1163,18 @@ function renderPlayerPicker() {
   const approved = Object.entries(users).filter(([,u]) => u.approved && !u.rejected);
   const pending  = Object.entries(users).filter(([,u]) => !u.approved && !u.rejected);
 
-  let html = approved.map(([uid, u]) => `
+  // Nút "Thêm tài khoản" đưa LÊN ĐẦU để người mới dễ tìm
+  let html = `
+    <div class="register-tile" onclick="showRegister()">
+      <div class="plus">＋</div>
+      <div class="tile-name">Thêm tài khoản</div>
+    </div>
+  `;
+
+  html += approved.map(([uid, u]) => `
     <div class="player-tile approved" onclick="openPwdModal('${uid}')">
       <div class="avatar">${getInitials(u.name)}</div>
-      <div class="tile-name">${u.name}</div>
+      <div class="tile-name">${starWrap(uid, u.name)}</div>
       <div class="tile-status ok">▶ Vào chơi</div>
     </div>
   `).join('');
@@ -952,13 +1186,6 @@ function renderPlayerPicker() {
       <div class="tile-status wait">Chờ duyệt</div>
     </div>
   `).join('');
-
-  html += `
-    <div class="register-tile" onclick="showRegister()">
-      <div class="plus">＋</div>
-      <div class="tile-name">Chưa có tài khoản</div>
-    </div>
-  `;
 
   grid.innerHTML = html;
 }
@@ -1046,6 +1273,22 @@ function enterApp() {
   document.getElementById('bottom-nav').classList.add('show');
   showView('matches');
   renderWinnerBanner();
+  if (!promoShown) { promoShown = true; setTimeout(showPromo, 600); }
+}
+
+// ── POPUP QUẢNG CÁO VẬT PHẨM ──
+let promoShown = false;
+function showPromo() {
+  if (!currentUser) return;
+  document.getElementById('promo-overlay').classList.add('open');
+}
+function closePromo(e) {
+  if (e && e.type === 'click' && e.target !== document.getElementById('promo-overlay')) return;
+  document.getElementById('promo-overlay').classList.remove('open');
+}
+function goShopFromPromo() {
+  document.getElementById('promo-overlay').classList.remove('open');
+  showView('shop');
 }
 
 function logoutPrompt() {
@@ -1362,16 +1605,21 @@ function phaseStats(uid, mode) {
   const wPts = mode === 'ko' ? PTS_WRONG   : GROUP_PTS_WRONG;
   let pts = correct * cPts + wrong * wPts;
   const spent = mode === 'ko' ? spentOf(uid) : 0; // tiền mua vật phẩm trừ vào vòng loại trực tiếp
-  pts -= spent;
-  return {pts, correct, wrong, spent};
+  let combo = 0, lucky = 0;
+  if (mode === 'ko') {
+    combo = comboBonus(uid);     // thưởng đoán đúng liên tiếp
+    lucky = luckyBonusOf(uid);   // tiền trúng vòng quay lì xì
+  }
+  pts = pts - spent + combo + lucky;
+  return {pts, correct, wrong, spent, combo, lucky};
 }
 function renderLeaderboard() {
   const approved = Object.entries(users).filter(([,u]) => u.approved);
   let rows = approved.map(([uid, u]) => ({uid, name: u.name, ...phaseStats(uid, lbMode)}));
 
   if (lbMode === 'ko') {
-    // Vào bảng knockout nếu đã bắt đầu dự đoán HOẶC đã mua vật phẩm
-    rows = rows.filter(r => isUserActive(r.uid) || r.spent > 0);
+    // Vào bảng knockout nếu đã bắt đầu dự đoán HOẶC đã mua/trúng vật phẩm
+    rows = rows.filter(r => isUserActive(r.uid) || r.spent > 0 || r.lucky > 0);
   } else {
     // Vòng bảng: chỉ ai có dữ liệu điểm vòng bảng
     rows = rows.filter(r => (r.correct + r.wrong) > 0);
@@ -1394,12 +1642,14 @@ function renderLeaderboard() {
       const isMe = p.uid === currentUser?.id;
       const ptsClass = p.pts >= 0 ? 'pos' : 'neg';
       const spentTxt = (lbMode === 'ko' && p.spent > 0) ? ` · 🛒 ${p.spent.toLocaleString('vi-VN')}đ` : '';
+      const comboTxt = (lbMode === 'ko' && p.combo > 0) ? ` · 🔥+${p.combo.toLocaleString('vi-VN')}` : '';
+      const luckyTxt = (lbMode === 'ko' && p.lucky > 0) ? ` · 🎁+${p.lucky.toLocaleString('vi-VN')}` : '';
       return `
         <div class="lb-card">
           <div class="lb-rank r${i+1}">${i < 3 ? crowns[i] : i+1}</div>
           <div style="flex:1">
             <div class="lb-name">${starWrap(p.uid, p.name)}${isMe?'<span class="me-badge">Bạn</span>':''}</div>
-            <div class="lb-sub">${p.correct} đúng · ${p.wrong} sai${spentTxt}</div>
+            <div class="lb-sub">${p.correct} đúng · ${p.wrong} sai${spentTxt}${comboTxt}${luckyTxt}</div>
           </div>
           <div class="lb-pts ${ptsClass}">${fmtPts(p.pts)}đ</div>
         </div>
@@ -1420,32 +1670,131 @@ function renderShop() {
   balEl.className = 'val ' + (bal >= 0 ? 'pos' : 'neg');
 
   const items = [
+    { type:'heart', ico:'❤️', nm:'Trái tim', price:15000, oldPrice:20000, sale:25,
+      ds:'Trong 1 trận được đặt thêm 1 tỷ số dự phòng — trúng 1 trong 2 là đúng. Dùng 1 lần.',
+      tag:`Đang có: ${heartsOf(me)}`, owned:false },
     { type:'magnifier', ico:'🔍', nm:'Kính lúp', price:10000,
       ds:'Xem được tỷ số tất cả mọi người đã đặt trong từng trận + thống kê bao nhiêu người đoán mỗi tỷ số.',
       tag:'Vĩnh viễn', owned: hasMagnifier(me) },
-    { type:'heart', ico:'❤️', nm:'Trái tim', price:20000,
-      ds:'Trong 1 trận được đặt thêm 1 tỷ số dự phòng — trúng 1 trong 2 là đúng. Dùng 1 lần.',
-      tag:`Đang có: ${heartsOf(me)}`, owned:false },
     { type:'star', ico:'⭐', nm:'Ngôi sao', price:10000,
       ds:'Tên của bạn sẽ hiện sáng, nổi bật ở bảng xếp hạng và danh sách dự đoán.',
       tag:'Vĩnh viễn', owned: hasStar(me) },
   ];
 
-  document.getElementById('shop-list').innerHTML = items.map(it => {
+  const itemsHtml = items.map(it => {
+    const nmHtml = it.sale
+      ? `${it.nm} <span class="sale-badge">-${it.sale}%</span>`
+      : it.nm;
+    const priceHtml = it.sale
+      ? `<span class="old-price">${it.oldPrice.toLocaleString('vi-VN')}đ</span> <span style="color:var(--red)">${it.price.toLocaleString('vi-VN')}đ</span>`
+      : it.tag;
     const btn = it.owned
       ? `<button class="shop-buy owned">Đã sở hữu</button>`
       : `<button class="shop-buy" onclick="buyItem('${it.type}')">Mua ${it.price.toLocaleString('vi-VN')}đ</button>`;
     return `
-      <div class="shop-item">
+      <div class="shop-item${it.sale?' on-sale':''}">
         <div class="ico">${it.ico}</div>
         <div class="info">
-          <div class="nm">${it.nm}</div>
+          <div class="nm">${nmHtml}</div>
           <div class="ds">${it.ds}</div>
-          <div class="price">${it.tag}</div>
+          <div class="price">${it.sale ? priceHtml + ' · ' + it.tag : it.tag}</div>
         </div>
         ${btn}
       </div>`;
   }).join('');
+
+  // COMBO STREAK – nhặt miễn phí
+  const comboHtml = `
+    <div class="shop-item" style="border-color:var(--accent)">
+      <div class="ico">🔥</div>
+      <div class="info">
+        <div class="nm">Combo Streak <span class="sale-badge" style="background:var(--accent);color:#000">FREE</span></div>
+        <div class="ds">Đoán đúng liên tiếp được thưởng: 2 trận +20.000đ, 3 trận +50.000đ, mỗi trận đúng tiếp theo +40.000đ.</div>
+        <div class="price">Miễn phí · vĩnh viễn</div>
+      </div>
+      ${ownsCombo(me) ? `<button class="shop-buy owned">Đã nhặt ✓</button>` : `<button class="shop-buy" onclick="claimCombo()">Nhặt free</button>`}
+    </div>`;
+
+  // LÌ XÌ MAY MẮN – vòng quay
+  const fs = freeSpinsOf(me);
+  const luckyHtml = `
+    <div class="shop-item" style="border-color:var(--gold);box-shadow:0 0 0 1px var(--gold) inset">
+      <div class="ico">🎁</div>
+      <div class="info">
+        <div class="nm">Lì xì may mắn</div>
+        <div class="ds">Vòng quay trúng thưởng: tiền lì xì, thêm lượt quay, skin, voucher giảm giá... có cả ô +100.000đ!</div>
+        <div class="price">${SPIN_PRICE.toLocaleString('vi-VN')}đ / lượt${fs>0?` · 🎟️ ${fs} lượt miễn phí`:''}</div>
+      </div>
+      <button class="shop-buy" style="background:linear-gradient(135deg,var(--gold),#ffae00)" onclick="openWheel()">Quay 🎰</button>
+    </div>`;
+
+  // 12 SKIN CON GIÁP
+  const tokenNote = skinTokensOf(me) > 0
+    ? `<p style="font-size:12px;color:var(--accent);font-weight:800;margin:-4px 0 8px">🎟️ Bạn có ${skinTokensOf(me)} vé đổi skin MIỄN PHÍ — bấm "Mua" bất kỳ skin nào.</p>` : '';
+  const skinHtml = `
+    <p class="section-title" style="margin-top:22px">🐲 Skin 12 con giáp · đồng giá ${SKIN_PRICE.toLocaleString('vi-VN')}đ</p>
+    ${tokenNote}
+    <p style="font-size:12px;color:var(--text2);margin:-4px 0 12px">Mua skin để tên hiện màu nổi bật kèm hình con giáp. Bấm skin đã có để trang bị / gỡ.</p>
+    <div class="skin-grid">
+      ${SKINS.map(sk => {
+        const owned = ownsSkin(me, sk.id);
+        const eq = shop[me]?.skin === sk.id;
+        const btn = !owned
+          ? `<button class="sbtn" onclick="buySkin('${sk.id}')">Mua ${SKIN_PRICE.toLocaleString('vi-VN')}đ</button>`
+          : eq
+            ? `<button class="sbtn equipped" onclick="buySkin('${sk.id}')">✓ Đang dùng</button>`
+            : `<button class="sbtn owned" onclick="buySkin('${sk.id}')">Trang bị</button>`;
+        return `
+          <div class="skin-card ${eq?'equipped':''}">
+            <div class="se" style="filter:drop-shadow(0 0 6px ${sk.color})">${sk.emoji}</div>
+            <div class="sn" style="color:${sk.color}">${sk.name}</div>
+            ${btn}
+          </div>`;
+      }).join('')}
+    </div>`;
+
+  document.getElementById('shop-list').innerHTML = itemsHtml + comboHtml + luckyHtml + skinHtml;
+}
+async function claimCombo() {
+  if (!currentUser) return;
+  const me = currentUser.id;
+  if (ownsCombo(me)) { showToast('Bạn đã có Combo Streak'); return; }
+  await fbSet(`${DB}/shop/${me}/combo`, true);
+  showToast('🔥 Đã nhặt Combo Streak miễn phí!');
+  renderShop();
+}
+async function buySkin(id) {
+  if (!currentUser) return;
+  const me = currentUser.id;
+  const sk = skinById(id);
+  if (!sk) return;
+  if (ownsSkin(me, id)) {
+    // đã sở hữu → trang bị / gỡ
+    const cur = shop[me]?.skin;
+    await fbSet(`${DB}/shop/${me}/skin`, cur === id ? null : id);
+    showToast(cur === id ? 'Đã gỡ skin' : `Đã trang bị ${sk.name}`);
+    renderShop();
+    return;
+  }
+  // Vé đổi skin miễn phí (từ vòng quay)
+  if (skinTokensOf(me) > 0) {
+    await fbSet(`${DB}/shop/${me}/skinTokens`, skinTokensOf(me) - 1);
+    await fbSet(`${DB}/shop/${me}/skins/${id}`, true);
+    await fbSet(`${DB}/shop/${me}/skin`, id);
+    showToast(`🎟️ Đổi skin ${sk.name} miễn phí!`);
+    renderShop();
+    return;
+  }
+  let price = SKIN_PRICE;
+  const voucher = hasVoucher50(me);
+  if (voucher) price = Math.round(price / 2);
+  if (!confirm(`Mua skin ${sk.name} giá ${price.toLocaleString('vi-VN')}đ${voucher?' (đã giảm 50%)':''}?\nSố tiền này sẽ trừ vào bảng xếp hạng vòng loại trực tiếp.`)) return;
+  await fbSet(`${DB}/shop/${me}/spent`, spentOf(me) + price);
+  if (voucher) await fbSet(`${DB}/shop/${me}/voucher50`, null);
+  await fbSet(`${DB}/shop/${me}/skins/${id}`, true);
+  await fbSet(`${DB}/shop/${me}/skin`, id); // tự trang bị
+  showToast(`✅ Đã mua & trang bị ${sk.name} (−${price.toLocaleString('vi-VN')}đ)`);
+  renderShop();
 }
 async function buyItem(type) {
   if (!currentUser) return;
@@ -1454,17 +1803,103 @@ async function buyItem(type) {
   let price, label;
   if (type === 'magnifier') { if (s.magnifier) { showToast('Bạn đã có Kính lúp rồi'); return; } price = 10000; label = 'Kính lúp'; }
   else if (type === 'star') { if (s.star) { showToast('Bạn đã có Ngôi sao rồi'); return; } price = 10000; label = 'Ngôi sao'; }
-  else if (type === 'heart') { price = 20000; label = 'Trái tim'; }
+  else if (type === 'heart') { price = 15000; label = 'Trái tim'; }
   else return;
 
-  if (!confirm(`Mua ${label} giá ${price.toLocaleString('vi-VN')}đ?\nSố tiền này sẽ trừ vào bảng xếp hạng vòng loại trực tiếp.`)) return;
+  const voucher = hasVoucher50(me);
+  if (voucher) price = Math.round(price / 2);
+  if (!confirm(`Mua ${label} giá ${price.toLocaleString('vi-VN')}đ${voucher?' (đã giảm 50%)':''}?\nSố tiền này sẽ trừ vào bảng xếp hạng vòng loại trực tiếp.`)) return;
 
   await fbSet(`${DB}/shop/${me}/spent`, spentOf(me) + price);
+  if (voucher) await fbSet(`${DB}/shop/${me}/voucher50`, null);
   if (type === 'magnifier') await fbSet(`${DB}/shop/${me}/magnifier`, true);
   if (type === 'star')      await fbSet(`${DB}/shop/${me}/star`, true);
   if (type === 'heart')     await fbSet(`${DB}/shop/${me}/hearts`, heartsOf(me) + 1);
 
   showToast(`✅ Đã mua ${label} (−${price.toLocaleString('vi-VN')}đ)`);
+  renderShop();
+}
+
+// ══════════════════════════════════════════════
+//  VÒNG QUAY LÌ XÌ
+// ══════════════════════════════════════════════
+let wheelDeg = 0;
+let spinning = false;
+function buildWheelFace() {
+  const seg = 360 / WHEEL.length;
+  const grad = WHEEL.map((w,i) => `${w.color} ${i*seg}deg ${(i+1)*seg}deg`).join(', ');
+  const wheel = document.getElementById('wheel');
+  wheel.style.background = `conic-gradient(${grad})`;
+  wheel.innerHTML = WHEEL.map((w,i) => {
+    const a = i*seg + seg/2;
+    return `<span class="wheel-emoji" style="transform:rotate(${a}deg) translateY(-92px) rotate(${-a}deg)">${w.emoji}</span>`;
+  }).join('');
+}
+function openWheel() {
+  if (!currentUser) return;
+  buildWheelFace();
+  document.getElementById('wheel-result').innerHTML = '';
+  const me = currentUser.id;
+  const fs = freeSpinsOf(me);
+  document.getElementById('wheel-spin-btn').textContent = fs > 0 ? `Quay miễn phí (còn ${fs})` : `Quay (${SPIN_PRICE.toLocaleString('vi-VN')}đ)`;
+  document.getElementById('wheel-overlay').classList.add('open');
+}
+function closeWheel(e) {
+  if (e && e.type === 'click' && e.target !== document.getElementById('wheel-overlay')) return;
+  if (spinning) return;
+  document.getElementById('wheel-overlay').classList.remove('open');
+}
+function pickOutcome() {
+  if (Math.random() * 100 < 2) return 7;       // +100.000đ: 2%
+  const others = [0,1,2,3,4,5,6];              // 7 ô còn lại đều nhau
+  return others[Math.floor(Math.random() * others.length)];
+}
+async function spinWheel() {
+  if (spinning || !currentUser) return;
+  const me = currentUser.id;
+  const free = freeSpinsOf(me) > 0;
+  spinning = true;
+  const btn = document.getElementById('wheel-spin-btn');
+  btn.disabled = true;
+  document.getElementById('wheel-result').innerHTML = '';
+
+  // Trừ tiền hoặc dùng lượt miễn phí
+  if (free) await fbSet(`${DB}/shop/${me}/freeSpins`, freeSpinsOf(me) - 1);
+  else      await fbSet(`${DB}/shop/${me}/spent`, spentOf(me) + SPIN_PRICE);
+
+  const idx = pickOutcome();
+  const seg = 360 / WHEEL.length;
+  const targetOrient = (360 - (idx*seg + seg/2)) % 360;       // hướng để ô idx nằm trên kim
+  const offset = (Math.random()*2 - 1) * (seg/2 - 6);          // lệch ngẫu nhiên trong ô
+  const cur = ((wheelDeg % 360) + 360) % 360;
+  wheelDeg += (360*5) + ((targetOrient - cur + 360) % 360) + offset;
+  const wheel = document.getElementById('wheel');
+  wheel.style.transform = `rotate(${wheelDeg}deg)`;
+
+  setTimeout(() => { applyOutcome(idx); spinning = false; btn.disabled = false; }, 4300);
+}
+async function applyOutcome(idx) {
+  const me = currentUser.id;
+  const w = WHEEL[idx];
+  let msg = '';
+  if (w.type === 'money') {
+    await fbSet(`${DB}/shop/${me}/luckyBonus`, luckyBonusOf(me) + w.amount);
+    msg = `🎉 Trúng +${w.amount.toLocaleString('vi-VN')}đ!`;
+  } else if (w.type === 'respin') {
+    await fbSet(`${DB}/shop/${me}/freeSpins`, freeSpinsOf(me) + 1);
+    msg = '🔄 Được thêm 1 lượt quay!';
+  } else if (w.type === 'skin') {
+    await fbSet(`${DB}/shop/${me}/skinTokens`, skinTokensOf(me) + 1);
+    msg = '🎨 Được tặng 1 vé đổi skin! Xuống mục skin chọn nhé.';
+  } else if (w.type === 'voucher') {
+    await fbSet(`${DB}/shop/${me}/voucher50`, true);
+    msg = '🎟️ Voucher giảm 50% cho lần mua vật phẩm tiếp theo!';
+  } else {
+    msg = '🍀 Chúc may mắn lần sau!';
+  }
+  const fs = freeSpinsOf(me);
+  document.getElementById('wheel-result').innerHTML = `<div style="font-weight:900;color:var(--gold);font-size:16px">${msg}</div>`;
+  document.getElementById('wheel-spin-btn').textContent = fs > 0 ? `Quay miễn phí (còn ${fs})` : `Quay (${SPIN_PRICE.toLocaleString('vi-VN')}đ)`;
   renderShop();
 }
 
