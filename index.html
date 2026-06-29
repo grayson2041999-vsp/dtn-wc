@@ -590,6 +590,42 @@
       position: absolute; top: 10px; right: 14px; z-index: 2;
       background: none; border: none; color: var(--text2); font-size: 22px; cursor: pointer;
     }
+
+    /* ── NHÀ VÔ ĐỊCH ── */
+    .champ-cta {
+      width: 100%; padding: 30px 18px; border: 2px solid var(--gold); border-radius: 20px;
+      background: linear-gradient(160deg, #1b3d26, #0d2818); color: var(--gold);
+      font-size: 20px; font-weight: 900; line-height: 1.4; cursor: pointer; text-align: center;
+      box-shadow: 0 0 30px rgba(255,215,0,.35); animation: ctaPulse 1.4s ease-in-out infinite;
+    }
+    .champ-cta:active { opacity: .9; }
+    .champ-hero {
+      background: linear-gradient(135deg, #0d2818, #163520);
+      border: 2px solid var(--accent); border-radius: var(--r);
+      padding: 20px; text-align: center;
+    }
+    .champ-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .champ-team {
+      background: var(--card); border: 1px solid var(--border); border-radius: var(--r);
+      padding: 12px 8px; text-align: center; cursor: pointer; transition: border-color .15s, transform .1s;
+    }
+    .champ-team:active { transform: scale(.97); }
+    .champ-team:hover { border-color: var(--gold); }
+    .champ-team .ct-flag { font-size: 30px; line-height: 1; }
+    .champ-team .ct-name { font-size: 13px; font-weight: 800; margin-top: 4px; }
+    .champ-team .ct-odds { font-size: 12px; font-weight: 900; color: var(--gold); margin-top: 2px; }
+    /* modal cược vô địch */
+    #champ-modal-overlay {
+      display: none; position: fixed; inset: 0; z-index: 260;
+      background: rgba(0,0,0,.8); backdrop-filter: blur(4px);
+      align-items: center; justify-content: center; padding: 20px;
+    }
+    #champ-modal-overlay.open { display: flex; }
+    #champ-modal-box {
+      background: var(--card); border: 2px solid var(--gold); border-radius: 20px;
+      padding: 22px 20px; width: 100%; max-width: 320px; text-align: center;
+    }
+    #champ-modal-box h3 { font-size: 20px; font-weight: 900; margin: 4px 0 2px; }
   </style>
 </head>
 <body>
@@ -655,13 +691,12 @@
 
 <!-- ══════════════ VIEW: MATCHES ══════════════ -->
 <div id="view-matches" class="view">
-  <div id="filter-bar">
-    <div class="filter-chip active" onclick="setFilter(this,'all')">Tất cả</div>
-    <div class="filter-chip" onclick="setFilter(this,'open')">Đang mở</div>
-    <div class="filter-chip" onclick="setFilter(this,'pending')">Chưa đoán</div>
-    <div class="filter-chip" onclick="setFilter(this,'done')">Có kết quả</div>
-  </div>
   <div id="matches-list"></div>
+</div>
+
+<!-- ══════════════ VIEW: NHÀ VÔ ĐỊCH ══════════════ -->
+<div id="view-champ" class="view">
+  <div id="champ-content"></div>
 </div>
 
 <!-- ══════════════ VIEW: LEADERBOARD ══════════════ -->
@@ -794,10 +829,28 @@
   </div>
 </div>
 
+<!-- ══════════════ CƯỢC NHÀ VÔ ĐỊCH MODAL ══════════════ -->
+<div id="champ-modal-overlay" onclick="closeChampModal(event)">
+  <div id="champ-modal-box">
+    <div id="champ-pick-flag" style="font-size:48px"></div>
+    <h3 id="champ-pick-name"></h3>
+    <p class="modal-sub" id="champ-pick-odds"></p>
+    <p style="font-size:13px;color:var(--text2);margin-bottom:6px">Nhập tiền cược (tối đa 50.000đ):</p>
+    <input type="number" id="champ-stake" min="1000" max="50000" step="1000" value="10000"
+      style="width:100%;padding:14px;font-size:18px;font-weight:800;text-align:center;background:var(--card2);border:1px solid var(--border);border-radius:var(--r);color:var(--text);margin-bottom:8px" />
+    <div id="champ-payout" style="font-size:13px;color:var(--gold);font-weight:800;margin-bottom:14px"></div>
+    <button class="btn-primary" onclick="confirmChampBet()">✅ Đặt cược</button>
+    <button class="btn-secondary" onclick="closeChampModal()">Huỷ</button>
+  </div>
+</div>
+
 <!-- ══════════════ BOTTOM NAV ══════════════ -->
 <nav id="bottom-nav">
   <button onclick="showView('matches')" id="nav-matches">
     <span class="icon">🏆</span>Trận đấu
+  </button>
+  <button onclick="showView('champ')" id="nav-champ">
+    <span class="icon">👑</span>Vô địch
   </button>
   <button onclick="showView('shop')" id="nav-shop">
     <span class="icon">🛒</span>Vật phẩm
@@ -871,6 +924,27 @@ const WHEEL = [
   {type:'money',   emoji:'💎', label:'+100.000đ', amount:100000, color:'#c62828'},
 ];
 
+// CỜ + TỶ LỆ CƯỢC NHÀ VÔ ĐỊCH
+const CHAMP_MAX_STAKE = 50000; // cược tối đa 50.000đ
+const CHAMP_FLAG = {
+  "Nam Phi":"🇿🇦","Canada":"🇨🇦","Đức":"🇩🇪","Paraguay":"🇵🇾","Hà Lan":"🇳🇱","Ma-rốc":"🇲🇦",
+  "Brazil":"🇧🇷","Nhật Bản":"🇯🇵","Pháp":"🇫🇷","Thụy Điển":"🇸🇪","Bờ Biển Ngà":"🇨🇮","Na Uy":"🇳🇴",
+  "Mê-hi-cô":"🇲🇽","Ecuador":"🇪🇨","Anh":"🏴󠁧󠁢󠁥󠁮󠁧󠁿","CHDC Congo":"🇨🇩","Mỹ":"🇺🇸","Bosnia & Herz.":"🇧🇦",
+  "Bỉ":"🇧🇪","Senegal":"🇸🇳","Colombia":"🇨🇴","Ghana":"🇬🇭","Tây Ban Nha":"🇪🇸","Áo":"🇦🇹",
+  "Thụy Sĩ":"🇨🇭","Algeria":"🇩🇿","Argentina":"🇦🇷","Cape Verde":"🇨🇻","Bồ Đào Nha":"🇵🇹",
+  "Croatia":"🇭🇷","Úc":"🇦🇺","Ai Cập":"🇪🇬","Uruguay":"🇺🇾"
+};
+const CHAMP_ODDS_LIST = [
+  { x:3.5, teams:["Pháp","Argentina","Tây Ban Nha","Anh"] },
+  { x:5,   teams:["Brazil","Đức","Bồ Đào Nha","Hà Lan","Croatia","Uruguay"] },
+  { x:10,  teams:["Bỉ","Ma-rốc","Nhật Bản","Thụy Sĩ","Senegal","Colombia","Na Uy","Mê-hi-cô","Mỹ","Áo"] },
+];
+function champOdds(name) {
+  for (const g of CHAMP_ODDS_LIST) if (g.teams.includes(name)) return g.x;
+  return 20; // còn lại (nhóm 20x)
+}
+function champFlag(name) { return CHAMP_FLAG[name] || "🏳️"; }
+
 // ══════════════════════════════════════════════
 //  MATCH DATA – 32 trận VÒNG LOẠI TRỰC TIẾP WC 2026
 //  (Vòng bảng đã kết thúc – bảng xếp hạng vẫn tính luỹ kế)
@@ -943,6 +1017,7 @@ let results     = {};
 let scores      = {};
 let advances    = {}; // {matchId: '1'|'2'} – đội đi tiếp khi hoà 90 phút
 let shop        = {}; // {uid:{magnifier,star,hearts,spent,heartMatches:{mid:true}}}
+let champBets   = {}; // {uid:{team,stake,odds}} – cược nhà vô địch
 
 // ══════════════════════════════════════════════
 //  HELPERS
@@ -1102,6 +1177,38 @@ function penaltyNote(m, resolved) {
   return w ? ` · ${w} thắng pen` : ' · hoà';
 }
 
+// ── NHÀ VÔ ĐỊCH ──
+// Đội đã bị loại = thua ở bất kỳ trận knockout đã có kết quả
+function eliminatedTeams() {
+  const resolved = resolveTeams();
+  const out = new Set();
+  for (const m of MATCHES) {
+    if (!results[m.id]) continue;
+    const loser = koLoser(m.id, resolved);
+    if (loser) out.add(loser);
+  }
+  return out;
+}
+// 32 đội vòng 1/16 (lấy từ team1/team2 các trận R32)
+function r32Teams() {
+  const set = [];
+  MATCHES.filter(m => m.round === 'Vòng 1/16').forEach(m => { if (m.team1) set.push(m.team1); if (m.team2) set.push(m.team2); });
+  return set;
+}
+// Đội còn quyền vô địch = R32 trừ đội đã bị loại
+function aliveChampTeams() {
+  const elim = eliminatedTeams();
+  return r32Teams().filter(t => !elim.has(t));
+}
+// Hạn chốt = giờ bắt đầu trận R32 cuối cùng (kickoff muộn nhất)
+function champDeadline() {
+  const ks = MATCHES.filter(m => m.round === 'Vòng 1/16').map(m => new Date(m.kickoff).getTime());
+  return new Date(Math.max(...ks));
+}
+function canBetChamp() { return new Date() < champDeadline(); }
+// Nhà vô địch (khi đã có kết quả chung kết – trận 104)
+function getChampion() { return koWinner(104, resolveTeams()); }
+
 // ══════════════════════════════════════════════
 //  FIREBASE
 // ══════════════════════════════════════════════
@@ -1117,6 +1224,7 @@ function initFirebase() {
     db.ref(`${DB}/scores`).on('value', s => { scores = s.val() || {}; onDataUpdate(); });
     db.ref(`${DB}/advance`).on('value', s => { advances = s.val() || {}; onDataUpdate(); });
     db.ref(`${DB}/shop`).on('value', s => { shop = s.val() || {}; onDataUpdate(); });
+    db.ref(`${DB}/champ`).on('value', s => { champBets = s.val() || {}; onDataUpdate(); });
   } catch(e) { showToast('⚠️ Lỗi kết nối Firebase'); }
 }
 function onDataUpdate() {
@@ -1327,6 +1435,7 @@ function showView(name) {
   document.querySelectorAll('#bottom-nav button').forEach(b => b.classList.remove('active'));
   document.getElementById('nav-' + name)?.classList.add('active');
   if (name === 'matches')     renderMatches();
+  if (name === 'champ')       renderChamp();
   if (name === 'leaderboard') renderLeaderboard();
   if (name === 'shop')        renderShop();
   if (name === 'admin')       renderAdminUsers();
@@ -1335,6 +1444,7 @@ function renderCurrentView() {
   const a = document.querySelector('.view.active');
   if (!a) return;
   if (a.id === 'view-matches')     renderMatches();
+  if (a.id === 'view-champ')       renderChamp();
   if (a.id === 'view-leaderboard') renderLeaderboard();
   if (a.id === 'view-shop')        renderShop();
   if (a.id === 'view-admin' && isAdmin) { renderAdminUsers(); renderAdminPreds(); }
@@ -1656,21 +1766,27 @@ function phaseStats(uid, mode) {
   const wPts = mode === 'ko' ? PTS_WRONG   : GROUP_PTS_WRONG;
   let pts = correct * cPts + wrong * wPts + x2extra;
   const spent = mode === 'ko' ? spentOf(uid) : 0; // tiền mua vật phẩm trừ vào vòng loại trực tiếp
-  let combo = 0, lucky = 0;
+  let combo = 0, lucky = 0, champ = 0;
   if (mode === 'ko') {
     combo = comboBonus(uid);     // thưởng đoán đúng liên tiếp
     lucky = luckyBonusOf(uid);   // tiền trúng vòng quay lì xì
+    const bet = champBets[uid];  // cược nhà vô địch
+    if (bet) {
+      champ = -bet.stake;        // đặt cược → trừ tiền cược
+      const champion = getChampion();
+      if (champion && bet.team === champion) champ += bet.stake * bet.odds; // trúng → nhận cược × tỷ lệ
+    }
   }
-  pts = pts - spent + combo + lucky;
-  return {pts, correct, wrong, spent, combo, lucky};
+  pts = pts - spent + combo + lucky + champ;
+  return {pts, correct, wrong, spent, combo, lucky, champ, hasBet: !!champBets[uid]};
 }
 function renderLeaderboard() {
   const approved = Object.entries(users).filter(([,u]) => u.approved);
   let rows = approved.map(([uid, u]) => ({uid, name: u.name, ...phaseStats(uid, lbMode)}));
 
   if (lbMode === 'ko') {
-    // Vào bảng knockout nếu đã bắt đầu dự đoán HOẶC đã mua/trúng vật phẩm
-    rows = rows.filter(r => isUserActive(r.uid) || r.spent > 0 || r.lucky > 0);
+    // Vào bảng knockout nếu đã bắt đầu dự đoán HOẶC đã mua/trúng vật phẩm HOẶC cược vô địch
+    rows = rows.filter(r => isUserActive(r.uid) || r.spent > 0 || r.lucky > 0 || r.hasBet);
   } else {
     // Vòng bảng: chỉ ai có dữ liệu điểm vòng bảng
     rows = rows.filter(r => (r.correct + r.wrong) > 0);
@@ -1695,12 +1811,13 @@ function renderLeaderboard() {
       const spentTxt = (lbMode === 'ko' && p.spent > 0) ? ` · 🛒 ${p.spent.toLocaleString('vi-VN')}đ` : '';
       const comboTxt = (lbMode === 'ko' && p.combo > 0) ? ` · 🔥+${p.combo.toLocaleString('vi-VN')}` : '';
       const luckyTxt = (lbMode === 'ko' && p.lucky > 0) ? ` · 🎁+${p.lucky.toLocaleString('vi-VN')}` : '';
+      const champTxt = (lbMode === 'ko' && p.champ) ? ` · 👑${p.champ>0?'+':''}${p.champ.toLocaleString('vi-VN')}` : '';
       return `
         <div class="lb-card">
           <div class="lb-rank r${i+1}">${i < 3 ? crowns[i] : i+1}</div>
           <div style="flex:1">
             <div class="lb-name">${starWrap(p.uid, p.name)}${isMe?'<span class="me-badge">Bạn</span>':''}</div>
-            <div class="lb-sub">${p.correct} đúng · ${p.wrong} sai${spentTxt}${comboTxt}${luckyTxt}</div>
+            <div class="lb-sub">${p.correct} đúng · ${p.wrong} sai${spentTxt}${comboTxt}${luckyTxt}${champTxt}</div>
           </div>
           <div class="lb-pts ${ptsClass}">${fmtPts(p.pts)}đ</div>
         </div>
@@ -1993,6 +2110,134 @@ async function applyOutcome(idx) {
   document.getElementById('wheel-result').innerHTML = `<div style="font-weight:900;color:var(--gold);font-size:16px">${msg}</div>`;
   document.getElementById('wheel-spin-btn').textContent = fs > 0 ? `Quay miễn phí (còn ${fs})` : `Quay (${SPIN_PRICE.toLocaleString('vi-VN')}đ)`;
   renderShop();
+}
+
+// ══════════════════════════════════════════════
+//  NHÀ VÔ ĐỊCH
+// ══════════════════════════════════════════════
+let champGridOpen = false;
+function renderChamp() {
+  if (!currentUser) return;
+  const me = currentUser.id;
+  const el = document.getElementById('champ-content');
+  const open = canBetChamp();
+  const myBet = champBets[me];
+  const alive = aliveChampTeams();
+  const champion = getChampion();
+  const deadline = champDeadline();
+  const dlStr = fmtKickoffVN(deadline.toISOString());
+
+  let html = '';
+
+  // Đã có nhà vô địch → tổng kết
+  if (champion) {
+    const won = myBet && myBet.team === champion;
+    html += `<div class="champ-hero" style="border-color:var(--gold)">
+      <div style="font-size:40px">${champFlag(champion)}</div>
+      <div style="font-size:13px;color:var(--text2)">NHÀ VÔ ĐỊCH</div>
+      <div style="font-size:22px;font-weight:900;color:var(--gold)">${champion}</div>
+      ${myBet ? `<div style="margin-top:8px;font-weight:800;color:${won?'var(--green)':'var(--red)'}">
+        ${won ? `🎉 Bạn trúng! +${(myBet.stake*myBet.odds).toLocaleString('vi-VN')}đ` : `Bạn cược ${champFlag(myBet.team)} ${myBet.team} — trượt rồi 😅`}</div>` : ''}
+    </div>`;
+  } else if (myBet) {
+    // Đã cược, chưa có kết quả
+    html += `<div class="champ-hero">
+      <div style="font-size:13px;color:var(--text2)">Bạn đã chọn nhà vô địch</div>
+      <div style="font-size:30px;margin:6px 0">${champFlag(myBet.team)}</div>
+      <div style="font-size:20px;font-weight:900">${myBet.team}</div>
+      <div style="font-size:13px;color:var(--gold);font-weight:800;margin-top:4px">Cược ${myBet.stake.toLocaleString('vi-VN')}đ · tỷ lệ ${myBet.odds}x → thắng nhận ${(myBet.stake*myBet.odds).toLocaleString('vi-VN')}đ</div>
+      <div style="font-size:12px;color:var(--text2);margin-top:8px">🔒 Mỗi người chỉ chọn 1 đội — đã chốt, không đổi được</div>
+    </div>`;
+  } else if (open) {
+    // Chưa cược, còn hạn → nút lớn
+    html += `<button class="champ-cta" onclick="openChampGrid()">🏆<br>Hãy dự đoán nhà vô địch<br>Worldcup năm nay</button>
+      <p style="text-align:center;font-size:12px;color:var(--text2);margin-top:10px">Đặt cược tối đa 50.000đ · mỗi người 1 đội · hạn chốt: ${dlStr}</p>`;
+  } else {
+    html += `<div class="champ-hero"><div style="font-size:30px">⏰</div><div style="font-weight:800;margin-top:6px">Đã hết hạn dự đoán nhà vô địch</div></div>`;
+  }
+
+  // Lưới chọn đội (ẩn/hiện)
+  if (open && (champGridOpen || (!myBet && false))) {
+    html += `<p class="section-title" style="margin-top:18px">Chọn 1 đội (còn ${alive.length} đội)</p>
+      <div class="champ-grid">${alive.map(t => `
+        <div class="champ-team" onclick="openChampBet('${t.replace(/'/g,"\\'")}')">
+          <div class="ct-flag">${champFlag(t)}</div>
+          <div class="ct-name">${t}</div>
+          <div class="ct-odds">${champOdds(t)}x</div>
+        </div>`).join('')}</div>`;
+  }
+
+  // Danh sách đội được chọn + ai chọn cùng (chỉ khi đã cược hoặc đã hết hạn)
+  if (myBet || !open) {
+    const byTeam = {};
+    Object.entries(champBets).forEach(([uid, b]) => {
+      if (!users[uid]?.approved) return;
+      (byTeam[b.team] = byTeam[b.team] || []).push(uid);
+    });
+    const teams = Object.keys(byTeam).sort((a,b) => byTeam[b].length - byTeam[a].length);
+    html += `<p class="section-title" style="margin-top:20px">🗳️ Mọi người chọn ai</p>`;
+    if (!teams.length) html += `<p class="empty-msg">Chưa có ai dự đoán</p>`;
+    else html += teams.map(t => {
+      const names = byTeam[t].map(uid => {
+        const me2 = uid === me;
+        return `<span class="predictor-chip ${me2?'me':'done'}">${starWrap(uid, users[uid].name)}</span>`;
+      }).join('');
+      return `<div class="card">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+          <span style="font-size:22px">${champFlag(t)}</span>
+          <b>${t}</b> <span style="color:var(--text2);font-size:12px">(${champOdds(t)}x)</span>
+          <span style="margin-left:auto;color:var(--accent);font-weight:800">${byTeam[t].length} người</span>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px">${names}</div>
+      </div>`;
+    }).join('');
+  }
+
+  el.innerHTML = html;
+}
+function openChampGrid() {
+  champGridOpen = true;
+  renderChamp();
+  document.querySelector('.champ-grid')?.scrollIntoView({behavior:'smooth', block:'start'});
+}
+let champPickTeam = null;
+function openChampBet(team) {
+  if (!canBetChamp()) { showToast('Đã hết hạn dự đoán nhà vô địch'); return; }
+  if (champBets[currentUser.id]) { showToast('Mỗi người chỉ được dự đoán 1 đội!'); return; }
+  champPickTeam = team;
+  const odds = champOdds(team);
+  document.getElementById('champ-pick-flag').textContent = champFlag(team);
+  document.getElementById('champ-pick-name').textContent = team;
+  document.getElementById('champ-pick-odds').textContent = `Tỷ lệ thắng: ${odds}x`;
+  const ex = champBets[currentUser.id];
+  document.getElementById('champ-stake').value = (ex && ex.team === team) ? ex.stake : 10000;
+  updateChampPayout();
+  document.getElementById('champ-stake').oninput = updateChampPayout;
+  document.getElementById('champ-modal-overlay').classList.add('open');
+}
+function updateChampPayout() {
+  const odds = champOdds(champPickTeam);
+  const stake = parseInt(document.getElementById('champ-stake').value) || 0;
+  document.getElementById('champ-payout').textContent =
+    `Nếu trúng nhận: ${(stake*odds).toLocaleString('vi-VN')}đ`;
+}
+function closeChampModal(e) {
+  if (e && e.type === 'click' && e.target !== document.getElementById('champ-modal-overlay')) return;
+  document.getElementById('champ-modal-overlay').classList.remove('open');
+}
+async function confirmChampBet() {
+  if (!currentUser || !champPickTeam) return;
+  if (!canBetChamp()) { showToast('Đã hết hạn dự đoán'); return; }
+  const stake = parseInt(document.getElementById('champ-stake').value) || 0;
+  if (stake <= 0) { showToast('Nhập số tiền cược hợp lệ'); return; }
+  if (stake > CHAMP_MAX_STAKE) { showToast('Cược tối đa 50.000đ'); return; }
+  if (champBets[currentUser.id]) { showToast('Mỗi người chỉ được dự đoán 1 đội!'); return; }
+  const odds = champOdds(champPickTeam);
+  await fbSet(`${DB}/champ/${currentUser.id}`, {team: champPickTeam, stake, odds});
+  document.getElementById('champ-modal-overlay').classList.remove('open');
+  champGridOpen = false;
+  showToast(`✅ Đã cược ${champFlag(champPickTeam)} ${champPickTeam} · ${stake.toLocaleString('vi-VN')}đ`);
+  renderChamp();
 }
 
 // ══════════════════════════════════════════════
