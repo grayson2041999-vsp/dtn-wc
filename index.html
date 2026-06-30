@@ -2578,7 +2578,8 @@ async function doJpSpin() {
       fbSet(`${DB}/jpWinner/${mid}`, winUid);
       jpWinner[mid] = winUid;
       document.getElementById('jp-spin-result').innerHTML =
-        `🏆 <b>${users[winUid]?.name || '?'}</b> thắng hũ ${jpPool(mid).toLocaleString('vi-VN')}đ!<br>Nhận ${jpShare(mid).toLocaleString('vi-VN')}đ (sau 5% thuế quỹ)`;
+        `🏆 <b>${users[winUid]?.name || '?'}</b> thắng hũ ${jpPool(mid).toLocaleString('vi-VN')}đ!<br>Nhận ${jpShare(mid).toLocaleString('vi-VN')}đ (sau 5% thuế quỹ)` +
+        `<div style="margin-top:8px;color:var(--accent);font-weight:800">📢 Hãy chia sẻ lên nhóm để mọi người cùng biết!</div>`;
       jpSpinning = false;
       setTimeout(() => renderMatches(), 1000);
       return;
