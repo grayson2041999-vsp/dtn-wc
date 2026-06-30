@@ -813,7 +813,7 @@
       <button id="x2-btn" class="heart-btn" style="display:none;border-color:var(--gold);background:rgba(255,215,0,.08);color:var(--gold)" onclick="activateX2()"></button>
       <div id="x2-active" class="backup-label" style="display:none;color:var(--gold)">⚡ ĐANG DÙNG x2 — đoán đúng ăn đôi +100.000đ</div>
     </div>
-    <p class="ko-note">⚽ Chỉ tính tỷ số 90 phút chính thức · Đoán đúng +50.000đ</p>
+    <p class="ko-note" id="ko-note">⚽ Chỉ tính tỷ số 90 phút chính thức · Đoán đúng +50.000đ</p>
     <button class="btn-primary" onclick="submitPred()">✅ Xác nhận</button>
     <button class="btn-secondary" onclick="closeModal(null)">Huỷ</button>
   </div>
@@ -1701,6 +1701,10 @@ function openModal(matchId) {
   const [g1,g2] = ex ? ex.split('-') : ['0','0'];
   document.getElementById('pred1').value = g1;
   document.getElementById('pred2').value = g2;
+  // Hiển thị tỷ lệ điểm hiện tại
+  document.getElementById('ko-note').textContent =
+    `⚽ Chỉ tính tỷ số 90 phút chính thức · Đoán đúng +${curCorrect().toLocaleString('vi-VN')}đ`;
+  document.getElementById('x2-active').textContent = `⚡ ĐANG DÙNG x2 — đoán đúng ăn đôi +${(curCorrect()*2).toLocaleString('vi-VN')}đ`;
 
   // ── Trái tim: tỷ số dự phòng ──
   useHeartThisSubmit = false;
@@ -1737,7 +1741,7 @@ function openModal(matchId) {
   } else if (x2avail > 0) {
     x2Active.style.display = 'none';
     x2Btn.style.display = 'block';
-    x2Btn.textContent = `⚡ Dùng x2: đoán đúng ăn đôi +100.000đ (còn ${x2avail})`;
+    x2Btn.textContent = `⚡ Dùng x2: đoán đúng ăn đôi +${(curCorrect()*2).toLocaleString('vi-VN')}đ (còn ${x2avail})`;
   } else {
     x2Active.style.display = 'none';
     x2Btn.style.display = 'none';
