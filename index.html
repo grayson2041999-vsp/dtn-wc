@@ -327,6 +327,14 @@
       font-size: 10px; background: linear-gradient(135deg, #ff6b35, #ff4444); color: #fff;
       border-radius: 8px; padding: 1px 7px; font-weight: 800; margin-left: 5px; white-space: nowrap;
     }
+    .title-sponsor {
+      font-size: 10px; background: linear-gradient(135deg, #ffd700, #ffae00); color: #000;
+      border-radius: 8px; padding: 1px 7px; font-weight: 800; margin-left: 5px; white-space: nowrap;
+    }
+    .title-tycoon {
+      font-size: 10px; background: linear-gradient(135deg, #00e676, #00b248); color: #000;
+      border-radius: 8px; padding: 1px 7px; font-weight: 800; margin-left: 5px; white-space: nowrap;
+    }
 
     /* ── ADMIN ── */
     #admin-pwd-input, #admin-match-select {
@@ -2087,6 +2095,10 @@ function renderLeaderboard() {
   }
   rows.sort((a,b) => a.pts - b.pts); // âm nhiều nhất lên đầu
 
+  // Danh hiệu (chỉ bảng KO): âm nhiều nhất = Nhà tài trợ vàng · dương nhiều nhất = Đại gia phố núi
+  const sponsorUid = (lbMode === 'ko' && rows.length && rows[0].pts < 0) ? rows[0].uid : null;
+  const tycoonUid  = (lbMode === 'ko' && rows.length && rows[rows.length-1].pts > 0) ? rows[rows.length-1].uid : null;
+
   const total = rows.reduce((s, p) => s + p.pts, 0);
   const totalEl = document.getElementById('total-pts');
   totalEl.textContent = fmtPts(total) + 'đ';
@@ -2111,7 +2123,7 @@ function renderLeaderboard() {
         <div class="lb-card">
           <div class="lb-rank r${i+1}">${i < 3 ? crowns[i] : i+1}</div>
           <div style="flex:1">
-            <div class="lb-name">${starWrap(p.uid, p.name)}${isMe?'<span class="me-badge">Bạn</span>':''}${isTopSpender(p.uid)?'<span class="spender-badge">🔥 Thánh nướng tiền</span>':''}</div>
+            <div class="lb-name">${starWrap(p.uid, p.name)}${isMe?'<span class="me-badge">Bạn</span>':''}${isTopSpender(p.uid)?'<span class="spender-badge">🔥 Thánh nướng tiền</span>':''}${p.uid===sponsorUid?'<span class="title-sponsor">🥇 Nhà tài trợ vàng</span>':''}${p.uid===tycoonUid?'<span class="title-tycoon">💰 Đại gia phố núi</span>':''}</div>
             <div class="lb-sub">${p.correct} đúng · ${p.wrong} sai${spentTxt}${comboTxt}${luckyTxt}${champTxt}${jpTxt}</div>
           </div>
           <div class="lb-pts ${ptsClass}">${fmtPts(p.pts)}đ</div>
@@ -2442,7 +2454,7 @@ async function applyOutcome(idx) {
     await fbSet(`${DB}/shop/${me}/voucher50`, true);
     msg = '🎟️ Voucher giảm 50% cho lần mua vật phẩm tiếp theo!';
   } else {
-    msg = '🍀 Chúc may mắn lần sau!';
+    msg = '🍀 Trật lất rồi, bỏ đi mà làm người! 😜';
   }
   const fs = freeSpinsOf(me);
   document.getElementById('wheel-result').innerHTML = `<div style="font-weight:900;color:var(--gold);font-size:16px">${msg}</div>`;
