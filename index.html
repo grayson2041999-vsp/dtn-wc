@@ -2607,9 +2607,13 @@ function onAdminJpSelect() {
   const parts = jpParticipants(id);
   document.getElementById('admin-jp-info').textContent = `${parts.length} người tham gia · hũ ${jpPool(id).toLocaleString('vi-VN')}đ`;
   const cur = jpSpinnerOf(id);
+  // Cho phép chọn BẤT KỲ tài khoản đã duyệt làm người quay
+  const allUsers = Object.entries(users)
+    .filter(([, u]) => u.approved && !u.rejected)
+    .sort((a, b) => (a[1].name || '').localeCompare(b[1].name || '', 'vi'));
   document.getElementById('admin-jp-spinner').innerHTML =
     '<option value="">-- Chọn người quay --</option>' +
-    parts.map(uid => `<option value="${uid}" ${cur===uid?'selected':''}>${users[uid]?.name || '?'}</option>`).join('');
+    allUsers.map(([uid, u]) => `<option value="${uid}" ${cur===uid?'selected':''}>${u.name}</option>`).join('');
   const win = jpWinnerOf(id);
   document.getElementById('admin-jp-result').innerHTML = win
     ? `<span style="color:var(--gold);font-weight:800">🏆 Đã quay: ${users[win]?.name||'?'} thắng ${jpShare(id).toLocaleString('vi-VN')}đ</span>`
