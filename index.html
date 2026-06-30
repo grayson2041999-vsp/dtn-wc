@@ -335,6 +335,10 @@
       font-size: 10px; background: linear-gradient(135deg, #00e676, #00b248); color: #000;
       border-radius: 8px; padding: 1px 7px; font-weight: 800; margin-left: 5px; white-space: nowrap;
     }
+    .title-streak {
+      font-size: 10px; background: linear-gradient(135deg, #a855f7, #6a1b9a); color: #fff;
+      border-radius: 8px; padding: 1px 7px; font-weight: 800; margin-left: 5px; white-space: nowrap;
+    }
 
     /* ── ADMIN ── */
     #admin-pwd-input, #admin-match-select {
@@ -1341,10 +1345,14 @@ function freeSpinsOf(uid)   { return shop[uid]?.freeSpins || 0; }
 function skinTokensOf(uid)  { return shop[uid]?.skinTokens || 0; }
 function hasVoucher50(uid)  { return !!shop[uid]?.voucher50; }
 // Thưởng combo: đoán đúng liên tiếp (theo thứ tự trận đã có kết quả). 2 lt +20k, 3 lt +50k (cộng dồn)
+// Các trận theo THỨ TỰ THỜI GIAN thi đấu (kickoff sớm hơn đứng trước)
+function matchesByTime() {
+  return MATCHES.slice().sort((a, b) => new Date(a.kickoff) - new Date(b.kickoff));
+}
 function comboBonus(uid) {
   if (!ownsCombo(uid)) return 0;
   let streak = 0, bonus = 0;
-  for (const m of MATCHES) {
+  for (const m of matchesByTime()) {            // xét theo thứ tự thời gian, KHÔNG theo id
     if (NO_SCORE_MATCHES.includes(m.id)) continue;
     const sc = scores[uid]?.[m.id];
     if (!sc) continue;
@@ -1352,10 +1360,32 @@ function comboBonus(uid) {
       streak++;
       if (streak === 2) bonus += 20000;
       else if (streak === 3) bonus += 30000;
-      else if (streak >= 4) bonus += 40000;
+      else if (streak >= 4) bonus += 20000; // mỗi trận tiếp theo +20.000
     } else streak = 0;
   }
   return bonus;
+}
+// Chuỗi đúng dài nhất hiện tại của 1 người (theo thứ tự thời gian)
+function maxStreak(uid) {
+  let streak = 0, best = 0;
+  for (const m of matchesByTime()) {
+    if (NO_SCORE_MATCHES.includes(m.id)) continue;
+    const sc = scores[uid]?.[m.id];
+    if (!sc) continue;
+    if (sc.correct === true) { streak++; if (streak > best) best = streak; }
+    else streak = 0;
+  }
+  return best;
+}
+// Người (hoặc những người) đang giữ chuỗi dài nhất (≥2) → danh hiệu Streak King
+function streakKingIds() {
+  let best = 0; const map = {};
+  Object.entries(users).forEach(([uid, u]) => {
+    if (!u.approved || u.rejected) return;
+    const s = maxStreak(uid); map[uid] = s; if (s > best) best = s;
+  });
+  if (best < 2) return [];
+  return Object.keys(map).filter(uid => map[uid] === best);
 }
 // Trang trí tên: ưu tiên skin con giáp (màu + hình), cộng thêm ⭐ nếu có Ngôi sao
 // "Thánh nướng tiền" = người tiêu nhiều nhất ở trang Vật phẩm (spent cao nhất)
@@ -2306,6 +2336,7 @@ function renderLeaderboard() {
   // Danh hiệu (chỉ bảng KO): âm nhiều nhất = Nhà tài trợ vàng · dương nhiều nhất = Đại gia phố núi
   const sponsorUid = (lbMode === 'ko' && rows.length && rows[0].pts < 0) ? rows[0].uid : null;
   const tycoonUid  = (lbMode === 'ko' && rows.length && rows[rows.length-1].pts > 0) ? rows[rows.length-1].uid : null;
+  const kings = lbMode === 'ko' ? streakKingIds() : [];
 
   const total = rows.reduce((s, p) => s + p.pts, 0);
   const totalEl = document.getElementById('total-pts');
@@ -2332,7 +2363,7 @@ function renderLeaderboard() {
         <div class="lb-card">
           <div class="lb-rank r${i+1}">${i < 3 ? crowns[i] : i+1}</div>
           <div style="flex:1">
-            <div class="lb-name">${starWrap(p.uid, p.name)}${isMe?'<span class="me-badge">Bạn</span>':''}${isTopSpender(p.uid)?'<span class="spender-badge">🔥 Thánh nướng tiền</span>':''}${p.uid===sponsorUid?'<span class="title-sponsor">🥇 Nhà tài trợ vàng</span>':''}${p.uid===tycoonUid?'<span class="title-tycoon">💰 Đại gia phố núi</span>':''}</div>
+            <div class="lb-name">${starWrap(p.uid, p.name)}${isMe?'<span class="me-badge">Bạn</span>':''}${isTopSpender(p.uid)?'<span class="spender-badge">🔥 Thánh nướng tiền</span>':''}${p.uid===sponsorUid?'<span class="title-sponsor">🥇 Nhà tài trợ vàng</span>':''}${p.uid===tycoonUid?'<span class="title-tycoon">💰 Đại gia phố núi</span>':''}${kings.includes(p.uid)?'<span class="title-streak">⚡ Streak King</span>':''}</div>
             <div class="lb-sub">${p.correct} đúng · ${p.wrong} sai${spentTxt}${comboTxt}${luckyTxt}${champTxt}${jpTxt}${duelTxt}</div>
           </div>
           <div class="lb-pts ${ptsClass}">${fmtPts(p.pts)}đ</div>
