@@ -753,6 +753,21 @@
     .goal-zone:active { background: var(--accent2); }
     .goal-zone.off { opacity: .45; cursor: default; }
     .duel-last { text-align: center; font-size: 14px; font-weight: 800; color: var(--gold); margin-top: 12px; }
+    .quiz-q {
+      background: var(--card2); border: 1px solid var(--border); border-radius: 12px;
+      padding: 14px; font-size: 16px; font-weight: 800; text-align: center; line-height: 1.4; margin-bottom: 12px;
+    }
+    .quiz-opts { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .quiz-opt {
+      padding: 14px 8px; border: 2px solid var(--border); border-radius: 12px;
+      background: var(--card); color: var(--text); font-size: 14px; font-weight: 800;
+      cursor: pointer; text-align: center; min-height: 50px;
+    }
+    .quiz-opt:active { background: var(--card2); }
+    .quiz-opt.picked { border-color: var(--accent); background: rgba(0,230,118,.12); }
+    .quiz-opt.off { cursor: default; }
+    .quiz-opt.correct { border-color: var(--green); background: rgba(0,230,118,.25); color: #fff; }
+    .quiz-opt.wrong { border-color: var(--red); background: rgba(255,68,68,.2); }
     .duel-result {
       background: linear-gradient(160deg, #1b3d26, #0d2818); border: 2px solid var(--gold);
       border-radius: var(--r); padding: 20px; text-align: center; margin-bottom: 16px;
@@ -1604,6 +1619,7 @@ function onDataUpdate() {
   renderCurrentView();
   renderWinnerBanner();
   updateDuelBadge();
+  maybeHostResolve();
 }
 
 // Vinh danh người đoán trúng trận gần nhất (chạy ngang cho mọi user thấy)
@@ -2951,95 +2967,160 @@ function renderDuel() {
 
   el.innerHTML = resultHtml + html;
 }
-const DUEL_ZONES = ['↖','↑','↗','↙','↓','↘'];
+// Ngân hàng 50 câu đố vui Bóng đá + World Cup. o=4 đáp án, a=chỉ số đáp án đúng
+const QUIZ = [
+  {q:'Đội tuyển nào vô địch World Cup nhiều nhất?', o:['Brazil','Đức','Ý','Argentina'], a:0},
+  {q:'World Cup đầu tiên tổ chức năm nào?', o:['1930','1928','1934','1926'], a:0},
+  {q:'World Cup đầu tiên tổ chức ở đâu?', o:['Uruguay','Brazil','Ý','Pháp'], a:0},
+  {q:'Đội vô địch World Cup 2022?', o:['Argentina','Pháp','Brazil','Croatia'], a:0},
+  {q:'Ai giành Quả bóng vàng World Cup 2022?', o:['Messi','Mbappé','Modric','Neymar'], a:0},
+  {q:'Vua phá lưới World Cup 2022?', o:['Mbappé','Messi','Giroud','Álvarez'], a:0},
+  {q:'World Cup 2018 tổ chức ở nước nào?', o:['Nga','Brazil','Qatar','Đức'], a:0},
+  {q:'Đội vô địch World Cup 2018?', o:['Pháp','Croatia','Bỉ','Anh'], a:0},
+  {q:'Cầu thủ ghi nhiều bàn nhất lịch sử World Cup?', o:['Miroslav Klose','Ronaldo (Béo)','Pelé','Messi'], a:0},
+  {q:'World Cup 2026 tổ chức ở mấy quốc gia?', o:['3','2','1','4'], a:0},
+  {q:'World Cup 2026 có bao nhiêu đội tham dự?', o:['48','32','40','64'], a:0},
+  {q:'Quốc gia nào vô địch World Cup 2014?', o:['Đức','Argentina','Brazil','Hà Lan'], a:0},
+  {q:'World Cup 2014 tổ chức ở đâu?', o:['Brazil','Nam Phi','Nga','Đức'], a:0},
+  {q:'Quốc gia nào vô địch World Cup 2010?', o:['Tây Ban Nha','Hà Lan','Đức','Uruguay'], a:0},
+  {q:'World Cup 2010 tổ chức ở đâu?', o:['Nam Phi','Brazil','Đức','Nhật Bản'], a:0},
+  {q:'Pelé vô địch World Cup mấy lần?', o:['3','2','1','4'], a:0},
+  {q:'"Bàn tay của Chúa" của Maradona ở World Cup năm nào?', o:['1986','1982','1990','1978'], a:0},
+  {q:'Đội nào vô địch World Cup 1986?', o:['Argentina','Tây Đức','Pháp','Bỉ'], a:0},
+  {q:'Hakan Şükür (bàn nhanh nhất lịch sử WC) thuộc đội nào?', o:['Thổ Nhĩ Kỳ','Đức','Anh','Mỹ'], a:0},
+  {q:'Một trận bóng đá chính thức kéo dài bao nhiêu phút (chưa bù giờ)?', o:['90','80','100','120'], a:0},
+  {q:'Mỗi đội ra sân bao nhiêu cầu thủ?', o:['11','10','12','9'], a:0},
+  {q:'Thẻ đỏ nghĩa là gì?', o:['Bị đuổi khỏi sân','Cảnh cáo','Phạt đền','Việt vị'], a:0},
+  {q:'Loạt luân lưu mỗi đội đá mấy quả đầu tiên?', o:['5','3','4','6'], a:0},
+  {q:'"Hat-trick" là ghi mấy bàn trong 1 trận?', o:['3','2','4','5'], a:0},
+  {q:'CLB nào Messi khoác áo lâu nhất?', o:['Barcelona','PSG','Real Madrid','Inter Miami'], a:0},
+  {q:'Cristiano Ronaldo nổi tiếng với số áo nào?', o:['7','10','9','11'], a:0},
+  {q:'Messi thường mặc áo số mấy ở tuyển Argentina?', o:['10','7','9','11'], a:0},
+  {q:'Quốc gia nào tổ chức World Cup 2022?', o:['Qatar','UAE','Nga','Nhật Bản'], a:0},
+  {q:'World Cup 2002 do 2 nước nào đồng tổ chức?', o:['Hàn Quốc & Nhật Bản','Đức & Pháp','Mỹ & Canada','TBN & BĐN'], a:0},
+  {q:'Đội vô địch World Cup 2002?', o:['Brazil','Đức','Hàn Quốc','Thổ Nhĩ Kỳ'], a:0},
+  {q:'Ronaldo "Người ngoài hành tinh" (vua phá lưới WC 2002) thuộc đội?', o:['Brazil','Bồ Đào Nha','Ý','TBN'], a:0},
+  {q:'Zidane húc đầu Materazzi ở chung kết World Cup năm nào?', o:['2006','2002','2010','1998'], a:0},
+  {q:'Đội vô địch World Cup 2006?', o:['Ý','Pháp','Đức','Bồ Đào Nha'], a:0},
+  {q:'Vị trí nào được bắt bóng bằng tay trong vòng cấm?', o:['Thủ môn','Tiền đạo','Hậu vệ','Tiền vệ'], a:0},
+  {q:'"Việt vị" tiếng Anh là gì?', o:['Offside','Foul','Penalty','Corner'], a:0},
+  {q:'Quả phạt góc tiếng Anh là gì?', o:['Corner','Penalty','Free kick','Throw-in'], a:0},
+  {q:'Đá phạt đền (11m) tiếng Anh là gì?', o:['Penalty','Corner','Offside','Goal'], a:0},
+  {q:'Brazil đã vô địch World Cup mấy lần?', o:['5','4','3','2'], a:0},
+  {q:'Đức (gồm Tây Đức) vô địch World Cup mấy lần?', o:['4','3','5','2'], a:0},
+  {q:'Ý vô địch World Cup mấy lần?', o:['4','3','2','5'], a:0},
+  {q:'World Cup được tổ chức mấy năm một lần?', o:['4','2','3','5'], a:0},
+  {q:'VAR là công nghệ hỗ trợ cho ai?', o:['Trọng tài','Cầu thủ','HLV','Khán giả'], a:0},
+  {q:'Kylian Mbappé thi đấu cho tuyển quốc gia nào?', o:['Pháp','Bỉ','BĐN','Brazil'], a:0},
+  {q:'Erling Haaland thi đấu cho tuyển quốc gia nào?', o:['Na Uy','Thụy Điển','Đan Mạch','Hà Lan'], a:0},
+  {q:'Cristiano Ronaldo thi đấu cho tuyển nào?', o:['Bồ Đào Nha','Brazil','TBN','Ý'], a:0},
+  {q:'Neymar thi đấu cho tuyển nào?', o:['Brazil','Argentina','BĐN','Pháp'], a:0},
+  {q:'Sân Maracanã nổi tiếng ở quốc gia nào?', o:['Brazil','Argentina','Anh','TBN'], a:0},
+  {q:'Cúp vàng dành cho nhà vô địch World Cup hiện nay tên là gì?', o:['FIFA World Cup Trophy','Cúp Jules Rimet','Champions League','Euro'], a:0},
+  {q:'Tuyển Việt Nam vô địch AFF Cup gần nhất (tính tới 2020) năm nào?', o:['2018','2008','2016','2020'], a:0},
+  {q:'Trong bóng đá, ai là người điều khiển trận đấu trên sân?', o:['Trọng tài','Đội trưởng','HLV','Bình luận viên'], a:0},
+];
+function shuffledQuizOrder() {
+  const a = QUIZ.map((_, i) => i);
+  for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i+1)); [a[i], a[j]] = [a[j], a[i]]; }
+  return a;
+}
+function quizFor(d) {
+  const ord = (d.qOrder && d.qOrder.length) ? d.qOrder : QUIZ.map((_, i) => i);
+  const qi = ord[(d.round || 0) % ord.length];
+  return QUIZ[qi % QUIZ.length] || QUIZ[0];
+}
 function renderGameBoard(d) {
   const me = currentUser.id;
   const isFrom = d.from === me;
   const oppUid = isFrom ? d.to : d.from;
   const myG = isFrom ? (d.aScore||0) : (d.bScore||0);
   const oppG = isFrom ? (d.bScore||0) : (d.aScore||0);
-  const shooter = d.idx % 2 === 0 ? d.from : d.to;
-  const keeper = shooter === d.from ? d.to : d.from;
-  const actor = d.phase === 'shoot' ? shooter : keeper;
-  const myTurn = actor === me;
-  const shotNo = Math.floor(d.idx / 2) + 1;
+  const role = isFrom ? 'from' : 'to';
+  const q = quizFor(d);
   const left = Math.max(0, Math.ceil(((d.deadline||0) - Date.now()) / 1000));
+  const myAns = d.ans && d.ans[role];
+  const reveal = d.phase === 'reveal';
 
-  let statusLine;
-  if (d.phase === 'shoot') {
-    statusLine = shooter === me ? '⚽ ĐẾN LƯỢT BẠN SÚT — chọn 1 ô' : `🧤 Bạn bắt · ${users[oppUid]?.name||'?'} đang chọn góc sút...`;
-  } else {
-    statusLine = keeper === me ? '🧤 ĐẾN LƯỢT BẠN BẮT — chọn ô để cản' : `⚽ Bạn đã sút, chờ ${users[oppUid]?.name||'?'} bắt...`;
-  }
-  const grid = `<div class="goal-grid">${DUEL_ZONES.map((z,i) =>
-    `<button class="goal-zone${myTurn?'':' off'}" ${myTurn?`onclick="pickZone(${i})"`:''}>${z}</button>`).join('')}</div>`;
-  const last = (d.results && d.results.length) ? d.results[d.results.length-1] : null;
-  const lastHtml = last ? `<div class="duel-last">${last.goal?'🥅 VÀO!':'🧤 CẢN!'} · sút ${DUEL_ZONES[last.sPick]} / bắt ${DUEL_ZONES[last.kPick]}</div>` : '';
-
-  return `<div class="duel-arena">
-    <div class="duel-score">
+  const head = `<div class="duel-score">
       <div><div class="dn">${starWrap(me, users[me].name)}</div><div class="ds">${myG}</div></div>
       <div style="color:var(--text2);font-weight:900;font-size:13px">VS</div>
       <div><div class="dn">${users[oppUid]?.name||'?'}</div><div class="ds">${oppG}</div></div>
     </div>
-    <div style="text-align:center;color:var(--text2);font-size:12px;margin:4px 0">Cược ${(d.stake||0).toLocaleString('vi-VN')}đ · lượt ${shotNo}${d.idx>=6?' · luân lưu cân não':''}</div>
+    <div style="text-align:center;color:var(--text2);font-size:12px;margin:4px 0">Cược ${(d.stake||0).toLocaleString('vi-VN')}đ · ai đạt 3 điểm trước thắng</div>`;
+
+  let statusLine, timerLine = '', opts;
+  if (reveal) {
+    const w = d.lastWinner;
+    statusLine = w ? (w === role ? '🔔 BẠN nhanh hơn! +1 điểm 🎉' : '😬 Đối thủ nhanh hơn rồi') : '⏳ Không ai đúng — qua câu mới';
+    opts = `<div class="quiz-opts">${q.o.map((t,i) => {
+      let cls = 'quiz-opt'; if (i === q.a) cls += ' correct'; else if (myAns && myAns.choice === i) cls += ' wrong';
+      return `<div class="${cls}">${t}</div>`; }).join('')}</div>`;
+  } else {
+    statusLine = myAns ? '✅ Đã chọn — chờ kết quả...' : '⚡ Trả lời NHANH & ĐÚNG để ghi điểm!';
+    timerLine = `<div class="duel-timer-wrap">⏱ <span id="duel-timer">${left}s</span></div>`;
+    opts = `<div class="quiz-opts">${q.o.map((t,i) => {
+      const picked = myAns && myAns.choice === i;
+      return `<button class="quiz-opt${picked?' picked':''}${myAns?' off':''}" ${myAns?'':`onclick="quizAnswer(${i})"`}>${t}</button>`; }).join('')}</div>`;
+  }
+
+  return `<div class="duel-arena">
+    ${head}
     <div class="duel-status">${statusLine}</div>
-    <div class="duel-timer-wrap">⏱ <span id="duel-timer">${left}s</span></div>
-    ${grid}${lastHtml}
+    ${timerLine}
+    <div class="quiz-q">${q.q}</div>
+    ${opts}
   </div>`;
 }
-function duelComputeNext(idx, a, b, results) {
-  const done = idx + 1;
-  if (done < 6) return {idx: idx+1, phase: 'shoot', deadline: Date.now()+10000};
-  if (done === 6) { if (a !== b) return {status: 'done', winner: a>b?'from':'to', endAt: Date.now()}; return {idx: 6, phase: 'shoot', deadline: Date.now()+10000}; }
-  if (idx >= 7 && idx % 2 === 1) {
-    const f = results[idx-1], t = results[idx];
-    if (f && t && f.goal !== t.goal) return {status: 'done', winner: f.goal?'from':'to', endAt: Date.now()};
-  }
-  return {idx: idx+1, phase: 'shoot', deadline: Date.now()+10000};
+function quizAnswer(choice) {
+  const d = myActiveDuel(); if (!d || d.status !== 'active' || d.phase !== 'play') return;
+  const role = d.from === currentUser.id ? 'from' : 'to';
+  if (d.ans && d.ans[role]) return; // đã trả lời
+  const q = quizFor(d);
+  fbSet(`${DB}/duels/${d.id}/ans/${role}`, {choice, correct: choice === q.a, ts: Date.now()});
 }
-async function doPick(d, zone) {
-  if (duelBusy) return;
-  duelBusy = true;
-  try {
-    const path = `${DB}/duels/${d.id}`;
-    const shooter = d.idx % 2 === 0 ? d.from : d.to;
-    if (d.phase === 'shoot') {
-      await fbUpdate(path, {shooterPick: zone, phase: 'keep', deadline: Date.now()+10000});
-    } else {
-      const goal = d.shooterPick !== zone;
-      const results = (d.results || []).slice();
-      results.push({shooter: d.idx%2===0?'from':'to', sPick: d.shooterPick, kPick: zone, goal});
-      let a = d.aScore||0, b = d.bScore||0;
-      if (goal) { if (shooter === d.from) a++; else b++; }
-      const next = duelComputeNext(d.idx, a, b, results);
-      await fbUpdate(path, Object.assign({results, aScore: a, bScore: b, shooterPick: null}, next));
+// Host = người mời (from) chấm điểm để tránh tranh chấp
+async function hostResolveQuiz(d) {
+  if (duelBusy || d.from !== currentUser.id) return;
+  const path = `${DB}/duels/${d.id}`;
+  if (d.phase === 'play') {
+    const af = d.ans && d.ans.from, at = d.ans && d.ans.to;
+    const corrects = [];
+    if (af && af.correct) corrects.push({r: 'from', ts: af.ts});
+    if (at && at.correct) corrects.push({r: 'to', ts: at.ts});
+    let decide = null;
+    if (corrects.length) { corrects.sort((x,y) => x.ts - y.ts); decide = {winner: corrects[0].r}; }
+    else if (af && at) decide = {winner: null};                 // cả 2 sai
+    else if (Date.now() > (d.deadline||0)) decide = {winner: null}; // hết giờ
+    if (decide) {
+      duelBusy = true;
+      try {
+        let a = d.aScore||0, b = d.bScore||0;
+        if (decide.winner === 'from') a++; else if (decide.winner === 'to') b++;
+        await fbUpdate(path, {phase: 'reveal', aScore: a, bScore: b, lastWinner: decide.winner, revealUntil: Date.now()+2800});
+      } finally { duelBusy = false; }
     }
-  } finally { duelBusy = false; }
+  } else if (d.phase === 'reveal' && Date.now() > (d.revealUntil||0)) {
+    duelBusy = true;
+    try {
+      const a = d.aScore||0, b = d.bScore||0;
+      if (a >= 3 || b >= 3) await fbUpdate(path, {status: 'done', winner: a>=3?'from':'to', endAt: Date.now()});
+      else await fbUpdate(path, {round: (d.round||0)+1, phase: 'play', deadline: Date.now()+12000, ans: null, lastWinner: null});
+    } finally { duelBusy = false; }
+  }
 }
-function pickZone(zone) {
-  const d = myActiveDuel(); if (!d) return;
-  const shooter = d.idx % 2 === 0 ? d.from : d.to;
-  const actor = d.phase === 'shoot' ? shooter : (shooter === d.from ? d.to : d.from);
-  if (currentUser.id !== actor) { showToast('Chưa tới lượt bạn'); return; }
-  doPick(d, zone);
-}
-async function autoPick() {
-  const d = myActiveDuel(); if (!d || d.status !== 'active') return;
-  if (Date.now() < (d.deadline||0)) return;
-  const shooter = d.idx % 2 === 0 ? d.from : d.to;
-  const actor = d.phase === 'shoot' ? shooter : (shooter === d.from ? d.to : d.from);
-  const me = currentUser.id;
-  if (me !== actor && Date.now() < (d.deadline||0) + 5000) return; // đối thủ chỉ bốc giúp khi actor mất tích
-  await doPick(d, Math.floor(Math.random()*6));
+function maybeHostResolve() {
+  if (!currentUser) return;
+  const d = myActiveDuel();
+  if (d && d.status === 'active' && d.game === 'quiz') hostResolveQuiz(d);
 }
 function duelTick() {
   if (!currentUser) return;
   const d = myActiveDuel();
   if (d && d.status === 'active') {
     const el = document.getElementById('duel-timer');
-    if (el) el.textContent = Math.max(0, Math.ceil(((d.deadline||0)-Date.now())/1000)) + 's';
-    autoPick();
+    if (el && d.phase === 'play') el.textContent = Math.max(0, Math.ceil(((d.deadline||0)-Date.now())/1000)) + 's';
+    maybeHostResolve();
   }
 }
 function dismissDuel(id) { duelSeen.add(id); renderDuel(); }
@@ -3052,7 +3133,7 @@ function openChallenge(toUid) {
   if (myActiveDuel()) { showToast('Bạn đang trong 1 trận'); return; }
   if (userBusy(toUid)) { showToast('Người này đang bận đấu'); return; }
   duelChallengeTo = toUid;
-  document.getElementById('duel-modal-sub').textContent = `Mời ${users[toUid]?.name||'?'} đá luân lưu`;
+  document.getElementById('duel-modal-sub').textContent = `Mời ${users[toUid]?.name||'?'} đấu đố vui bóng đá`;
   document.getElementById('duel-stake').value = 10000;
   document.getElementById('duel-modal-overlay').classList.add('open');
 }
@@ -3074,7 +3155,7 @@ async function confirmChallenge() {
 async function acceptDuel(id) {
   const d = duels[id]; if (!d) return;
   if (myActiveDuel()) { showToast('Bạn đang trong 1 trận'); return; }
-  await fbUpdate(`${DB}/duels/${id}`, {status: 'active', idx: 0, phase: 'shoot', shooterPick: null, deadline: Date.now()+10000, results: [], aScore: 0, bScore: 0, winner: null});
+  await fbUpdate(`${DB}/duels/${id}`, {status: 'active', game: 'quiz', qOrder: shuffledQuizOrder(), round: 0, phase: 'play', deadline: Date.now()+12000, ans: null, aScore: 0, bScore: 0, lastWinner: null, winner: null});
   renderDuel();
 }
 async function declineDuel(id) { await fbUpdate(`${DB}/duels/${id}`, {status: 'declined'}); renderDuel(); }
