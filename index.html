@@ -339,6 +339,10 @@
       font-size: 10px; background: linear-gradient(135deg, #a855f7, #6a1b9a); color: #fff;
       border-radius: 8px; padding: 1px 7px; font-weight: 800; margin-left: 5px; white-space: nowrap;
     }
+    .title-loser {
+      font-size: 10px; background: linear-gradient(135deg, #8d6e63, #5d4037); color: #fff;
+      border-radius: 8px; padding: 1px 7px; font-weight: 800; margin-left: 5px; white-space: nowrap;
+    }
 
     /* ── ADMIN ── */
     #admin-pwd-input, #admin-match-select {
@@ -2337,6 +2341,8 @@ function renderLeaderboard() {
   const sponsorUid = (lbMode === 'ko' && rows.length && rows[0].pts < 0) ? rows[0].uid : null;
   const tycoonUid  = (lbMode === 'ko' && rows.length && rows[rows.length-1].pts > 0) ? rows[rows.length-1].uid : null;
   const kings = lbMode === 'ko' ? streakKingIds() : [];
+  const maxWrong = rows.reduce((mx, r) => Math.max(mx, r.wrong), 0);
+  const losers = (lbMode === 'ko' && maxWrong >= 2) ? rows.filter(r => r.wrong === maxWrong).map(r => r.uid) : [];
 
   const total = rows.reduce((s, p) => s + p.pts, 0);
   const totalEl = document.getElementById('total-pts');
@@ -2363,7 +2369,7 @@ function renderLeaderboard() {
         <div class="lb-card">
           <div class="lb-rank r${i+1}">${i < 3 ? crowns[i] : i+1}</div>
           <div style="flex:1">
-            <div class="lb-name">${starWrap(p.uid, p.name)}${isMe?'<span class="me-badge">Bạn</span>':''}${isTopSpender(p.uid)?'<span class="spender-badge">🔥 Thánh nướng tiền</span>':''}${p.uid===sponsorUid?'<span class="title-sponsor">🥇 Nhà tài trợ vàng</span>':''}${p.uid===tycoonUid?'<span class="title-tycoon">💰 Đại gia phố núi</span>':''}${kings.includes(p.uid)?'<span class="title-streak">⚡ Streak King</span>':''}</div>
+            <div class="lb-name">${starWrap(p.uid, p.name)}${isMe?'<span class="me-badge">Bạn</span>':''}${isTopSpender(p.uid)?'<span class="spender-badge">🔥 Thánh nướng tiền</span>':''}${p.uid===sponsorUid?'<span class="title-sponsor">🥇 Nhà tài trợ vàng</span>':''}${p.uid===tycoonUid?'<span class="title-tycoon">💰 Đại gia phố núi</span>':''}${kings.includes(p.uid)?'<span class="title-streak">⚡ Streak King</span>':''}${losers.includes(p.uid)?'<span class="title-loser">💩 Kẻ thất bại</span>':''}</div>
             <div class="lb-sub">${p.correct} đúng · ${p.wrong} sai${spentTxt}${comboTxt}${luckyTxt}${champTxt}${jpTxt}${duelTxt}</div>
           </div>
           <div class="lb-pts ${ptsClass}">${fmtPts(p.pts)}đ</div>
