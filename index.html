@@ -626,6 +626,55 @@
       padding: 22px 20px; width: 100%; max-width: 320px; text-align: center;
     }
     #champ-modal-box h3 { font-size: 20px; font-weight: 900; margin: 4px 0 2px; }
+
+    /* ── JACKPOT ── */
+    #jp-modal-overlay {
+      display: none; position: fixed; inset: 0; z-index: 260;
+      background: rgba(0,0,0,.8); backdrop-filter: blur(4px);
+      align-items: center; justify-content: center; padding: 20px;
+    }
+    #jp-modal-overlay.open { display: flex; }
+    #jp-modal-box {
+      background: var(--card); border: 2px solid var(--gold); border-radius: 20px;
+      padding: 22px 20px; width: 100%; max-width: 320px; text-align: center;
+    }
+    #jp-modal-box h3 { font-size: 19px; font-weight: 900; margin-bottom: 2px; }
+    .jp-pool {
+      background: linear-gradient(135deg, #2a1f00, #163520);
+      border: 2px solid var(--gold); border-radius: var(--r);
+      padding: 16px; text-align: center; margin-bottom: 14px;
+    }
+    .jp-pool .lbl { font-size: 11px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: var(--gold); }
+    .jp-pool .val { font-size: 30px; font-weight: 900; color: var(--gold); text-shadow: 0 0 12px rgba(255,215,0,.5); }
+    .jp-card {
+      background: var(--card); border: 1px solid var(--border); border-radius: var(--r);
+      padding: 14px; margin-bottom: 10px; position: relative;
+    }
+    .jp-card .jp-teams { font-size: 14px; font-weight: 800; margin-bottom: 8px; }
+    .jp-meta { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+    .jp-count { font-size: 12px; font-weight: 800; color: var(--accent); }
+    .jp-join {
+      padding: 8px 16px; border: none; border-radius: 10px; cursor: pointer;
+      background: linear-gradient(135deg, var(--gold), #ffae00); color: #000; font-size: 13px; font-weight: 900;
+    }
+    /* Nút Jackpot nổi bật trên thẻ trận */
+    .jp-match-btn {
+      width: 100%; margin-top: 10px; padding: 11px; border: none; border-radius: 12px; cursor: pointer;
+      background: linear-gradient(135deg, var(--gold), #ffae00); color: #000;
+      font-size: 13px; font-weight: 900; letter-spacing: .2px;
+      box-shadow: 0 0 16px rgba(255,215,0,.45); animation: jpPulse 1.5s ease-in-out infinite;
+    }
+    .jp-match-btn:active { opacity: .88; }
+    .jp-match-btn.joined {
+      background: var(--card2); color: var(--gold); border: 1px solid var(--gold);
+      box-shadow: none; animation: none; font-weight: 800;
+    }
+    @keyframes jpPulse { 0%,100% { transform: scale(1); box-shadow: 0 0 14px rgba(255,215,0,.4); } 50% { transform: scale(1.02); box-shadow: 0 0 22px rgba(255,215,0,.7); } }
+    .jp-result {
+      margin-top: 10px; padding: 9px 12px; border-radius: 10px;
+      background: rgba(255,215,0,.08); border: 1px solid var(--border);
+      font-size: 12px; line-height: 1.5;
+    }
   </style>
 </head>
 <body>
@@ -760,6 +809,17 @@
     <button class="btn-primary" onclick="adminSaveChampion()">💾 Lưu nhà vô địch</button>
     <p style="font-size:11px;color:var(--text2);margin-top:6px">Để trống = tự lấy đội thắng trận chung kết. Lưu đội = chốt nhà vô địch & quyết toán cược.</p>
 
+    <!-- JACKPOT: SỐ CÚ SÚT TRÚNG ĐÍCH -->
+    <p class="section-title" style="margin-top:24px">🎰 Jackpot: nhập số cú sút trúng đích</p>
+    <select id="admin-jp-select" onchange="onAdminJpSelect()" style="width:100%;padding:14px;background:var(--card2);border:1px solid var(--border);border-radius:var(--r);color:var(--text);font-size:15px;margin-bottom:8px"></select>
+    <div id="admin-jp-info" style="font-size:12px;color:var(--text2);margin-bottom:8px"></div>
+    <div class="admin-score-row">
+      <span style="flex:1;text-align:right;font-size:13px;font-weight:700">Số cú sút trúng đích</span>
+      <input type="number" id="admin-jp-shots" min="0" max="60" value="0" style="width:80px">
+    </div>
+    <button class="btn-primary" onclick="adminSaveShots()">💾 Lưu & chia hũ</button>
+    <div id="admin-jp-result" style="margin-top:10px;font-size:13px"></div>
+
     <!-- NHẬP KẾT QUẢ -->
     <p class="section-title" style="margin-top:24px">Nhập kết quả trận (90 phút)</p>
     <select id="admin-match-select" onchange="onAdminMatchSelect()"></select>
@@ -847,6 +907,20 @@
     <button class="btn-primary" id="wheel-spin-btn" onclick="spinWheel()">Quay</button>
     <button class="btn-secondary" id="wheel-try-btn" onclick="trySpin()" style="margin-top:8px">🎮 Quay thử (miễn phí, không tính quà)</button>
     <button class="btn-secondary" onclick="closeWheel()">Đóng</button>
+  </div>
+</div>
+
+<!-- ══════════════ JACKPOT MODAL ══════════════ -->
+<div id="jp-modal-overlay" onclick="closeJpModal(event)">
+  <div id="jp-modal-box">
+    <h3 id="jp-modal-title">💰 Tham gia Jackpot</h3>
+    <p class="modal-sub" id="jp-modal-sub"></p>
+    <p style="font-size:13px;color:var(--text2);margin-bottom:6px">Đoán số cú sút trúng đích cả trận:</p>
+    <input type="number" id="jp-guess" min="0" max="60" step="1" value="5"
+      style="width:100%;padding:16px;font-size:24px;font-weight:900;text-align:center;background:var(--card2);border:1px solid var(--border);border-radius:var(--r);color:var(--text);margin-bottom:10px" />
+    <div id="jp-modal-fee" style="font-size:12px;color:var(--gold);font-weight:800;margin-bottom:14px"></div>
+    <button class="btn-primary" onclick="confirmJackpot()">✅ Xác nhận</button>
+    <button class="btn-secondary" onclick="closeJpModal()">Huỷ</button>
   </div>
 </div>
 
@@ -1049,6 +1123,8 @@ let champBets   = {}; // {uid:{team,stake,odds}} – cược nhà vô địch
 let oddsCfg     = {correct: 50000, wrong: 10000}; // tỷ lệ điểm HIỆN TẠI (admin chỉnh)
 let matchOdds   = {}; // {matchId:{correct,wrong}} – tỷ lệ ĐÃ KHOÁ của từng trận khi chấm
 let championWinner = ''; // nhà vô địch do admin nhập (ưu tiên hơn tự suy từ chung kết)
+let jackpots    = {}; // {matchId:{uid: guess}} – đoán số cú sút trúng đích
+let shotsOnTarget = {}; // {matchId: số cú sút trúng đích thực tế (admin nhập)}
 
 // ══════════════════════════════════════════════
 //  HELPERS
@@ -1265,6 +1341,47 @@ function champOpenSlot(uid) {
 }
 // Nhà vô địch: ưu tiên admin nhập, nếu không thì lấy đội thắng chung kết (trận 104)
 function getChampion() { return championWinner || koWinner(104, resolveTeams()); }
+
+// ── JACKPOT: đoán số cú sút trúng đích ──
+const JACKPOT_FEE = 5000;
+const JACKPOT_TAX = 0.05; // người thắng đóng 5% thuế lại cho quỹ
+// Phần thưởng thực nhận của mỗi người thắng (sau thuế)
+function jpShare(mid, winnersCount) {
+  if (!winnersCount) return 0;
+  return Math.round(jpPool(mid) / winnersCount * (1 - JACKPOT_TAX));
+}
+function jpEntries(mid) {  // {uid: guess} của người ĐÃ DUYỆT
+  const e = jackpots[mid] || {};
+  const out = {};
+  Object.entries(e).forEach(([uid, g]) => { if (users[uid]?.approved && g !== undefined && g !== null) out[uid] = Number(g); });
+  return out;
+}
+function jpCount(mid) { return Object.keys(jpEntries(mid)).length; }
+function jpPool(mid)  { return jpCount(mid) * JACKPOT_FEE; }
+function jpJoined(uid, mid) { const e = jackpots[mid] || {}; return e[uid] !== undefined && e[uid] !== null; }
+// Người thắng của 1 trận (khi đã có kết quả): lệch tuyệt đối nhỏ nhất, hoà chia đều
+function jpWinners(mid) {
+  const actual = shotsOnTarget[mid];
+  if (actual === undefined || actual === null || actual === '') return null;
+  const entries = jpEntries(mid);
+  const uids = Object.keys(entries);
+  if (!uids.length) return {winners: [], min: 0};
+  let min = Infinity;
+  uids.forEach(u => { const d = Math.abs(entries[u] - Number(actual)); if (d < min) min = d; });
+  return {winners: uids.filter(u => Math.abs(entries[u] - Number(actual)) === min), min};
+}
+// Tổng lời/lỗ jackpot của 1 user trên tất cả các trận
+function jackpotNet(uid) {
+  let net = 0;
+  for (const mid of Object.keys(jackpots)) {
+    if (!jpJoined(uid, mid)) continue;
+    net -= JACKPOT_FEE;                 // phí tham gia
+    const w = jpWinners(mid);
+    if (w && w.winners.includes(uid)) net += jpShare(mid, w.winners.length); // thắng → chia hũ (đã trừ 5% thuế)
+  }
+  return net;
+}
+function joinedAnyJackpot(uid) { return Object.keys(jackpots).some(mid => jpJoined(uid, mid)); }
 // Danh sách cược vô địch của 1 người (tối đa 2 lần, riêng lẻ)
 const CHAMP_MAX_BETS = 2;
 function userBets(uid) {
@@ -1293,6 +1410,8 @@ function initFirebase() {
     db.ref(`${DB}/oddsConfig`).on('value', s => { oddsCfg = s.val() || {correct:50000, wrong:10000}; onDataUpdate(); });
     db.ref(`${DB}/matchOdds`).on('value', s => { matchOdds = s.val() || {}; onDataUpdate(); });
     db.ref(`${DB}/championWinner`).on('value', s => { championWinner = s.val() || ''; onDataUpdate(); });
+    db.ref(`${DB}/jackpot`).on('value', s => { jackpots = s.val() || {}; onDataUpdate(); });
+    db.ref(`${DB}/shotsOnTarget`).on('value', s => { shotsOnTarget = s.val() || {}; onDataUpdate(); });
   } catch(e) { showToast('⚠️ Lỗi kết nối Firebase'); }
 }
 function onDataUpdate() {
@@ -1313,6 +1432,9 @@ function renderWinnerBanner() {
     .filter(m => results[m.id])
     .sort((a, b) => new Date(b.kickoff) - new Date(a.kickoff));
 
+  const msgs = [];
+
+  // (1) Người đoán trúng tỷ số trận gần nhất
   let chosen = null, winners = [];
   for (const m of withResult) {
     const ws = Object.entries(users)
@@ -1320,14 +1442,25 @@ function renderWinnerBanner() {
       .map(([, u]) => u.name);
     if (ws.length) { chosen = m; winners = ws; break; }
   }
+  if (chosen) {
+    const rt = resolved[chosen.id] || {};
+    msgs.push(`🎉 Chúc mừng <b>${winners.join(', ')}</b> đã đoán trúng tỷ số ${results[chosen.id]} trận ${rt.team1||''} vs ${rt.team2||''}! 🏆 Mang tiền về cho mẹ nhé!`);
+  }
 
-  if (!chosen) { banner.classList.remove('show'); return; }
+  // (2) Người thắng Jackpot (các trận admin đã nhập số cú sút)
+  MATCHES.filter(m => shotsOnTarget[m.id] != null && jpCount(m.id) > 0)
+    .sort((a, b) => new Date(b.kickoff) - new Date(a.kickoff))
+    .slice(0, 3)
+    .forEach(m => {
+      const w = jpWinners(m.id) || {winners: []};
+      if (!w.winners.length) return;
+      const names = w.winners.map(u => users[u]?.name || '?').join(', ');
+      const rt = resolved[m.id] || {};
+      msgs.push(`💰 <b>${names}</b> ẵm hũ Jackpot trận ${rt.team1||''} vs ${rt.team2||''} (đoán sát ${shotsOnTarget[m.id]} cú sút)! 🤑`);
+    });
 
-  const actual = results[chosen.id];
-  const rt = resolved[chosen.id] || {};
-  const names = winners.join(', ');
-  const msg = `🎉 Chúc mừng <b>${names}</b> đã đoán trúng tỷ số ${actual} trận ${rt.team1||''} vs ${rt.team2||''}! 🏆 Mang tiền về cho mẹ nhé!`;
-  banner.innerHTML = `<div class="wb-track">${msg}</div>`;
+  if (!msgs.length) { banner.classList.remove('show'); return; }
+  banner.innerHTML = `<div class="wb-track">${msgs.join('　•　')}</div>`;
   banner.classList.add('show');
 }
 async function fbSet(path, val) {
@@ -1672,9 +1805,38 @@ function renderMatchCard(m, resolved) {
         ${statusHtml}
         <div style="display:flex;align-items:center;gap:8px">${predCountHtml}${predHtml}</div>
       </div>
+      ${ready ? jpMatchCardHtml(m) : ''}
       ${predListHtml}
     </div>
   `;
+}
+// Khu Jackpot trên thẻ trận: nút tham gia (trận mở) hoặc người thắng (đã có kết quả)
+function jpMatchCardHtml(m) {
+  const me = currentUser.id;
+  const guess = jackpots[m.id]?.[me];
+  const count = jpCount(m.id), pool = jpPool(m.id);
+  const actual = shotsOnTarget[m.id];
+  // Đã có số cú sút → hiện người thắng
+  if (actual != null && actual !== '') {
+    if (!count) return '';
+    const w = jpWinners(m.id) || {winners: []};
+    const names = w.winners.map(u => starWrap(u, users[u]?.name || '?')).join(', ');
+    const share = jpShare(m.id, w.winners.length);
+    const iWon = w.winners.includes(me);
+    return `<div class="jp-result">💰 Jackpot · thực tế <b>${actual}</b> cú sút · hũ ${pool.toLocaleString('vi-VN')}đ
+      <div style="margin-top:3px;color:var(--gold);font-weight:800">🏆 ${names || '—'}${w.winners.length?` · +${share.toLocaleString('vi-VN')}đ/người`:''}</div>
+      ${guess!=null?`<div style="color:${iWon?'var(--green)':'var(--text2)'}">Bạn đoán ${guess}${iWon?' — TRÚNG! 🎉':''}</div>`:''}</div>`;
+  }
+  // Đã khoá, chờ kết quả
+  if (isLocked(m)) {
+    if (guess == null && !count) return '';
+    return `<div class="jp-result" style="color:var(--text2)">💰 Jackpot · ${count} người · hũ ${pool.toLocaleString('vi-VN')}đ · chờ kết quả${guess!=null?` · bạn đoán <b>${guess}</b>`:''}</div>`;
+  }
+  // Còn mở → nút tham gia nổi bật
+  const label = guess != null
+    ? `💰 Jackpot: bạn đoán ${guess} cú · ${count} người · Đổi`
+    : `💰 THAM GIA JACKPOT ${JACKPOT_FEE.toLocaleString('vi-VN')}đ${pool>0?` · hũ ${pool.toLocaleString('vi-VN')}đ`:''}`;
+  return `<button class="jp-match-btn${guess!=null?' joined':''}" onclick="event.stopPropagation(); openJackpot(${m.id})">${label}</button>`;
 }
 function togglePreds(e, id) {
   e.stopPropagation();
@@ -1846,6 +2008,7 @@ function phaseStats(uid, mode) {
   const spent = spentOf(uid);
   const combo = comboBonus(uid);
   const lucky = luckyBonusOf(uid);
+  const jackpot = jackpotNet(uid);
   let champ = 0;
   const bets = userBets(uid);
   if (bets.length) {
@@ -1855,16 +2018,16 @@ function phaseStats(uid, mode) {
       if (champion && b.team === champion) champ += b.stake * b.odds;
     });
   }
-  const pts = koPts - spent + combo + lucky + champ;
-  return {pts, correct, wrong, spent, combo, lucky, champ, hasBet: bets.length > 0};
+  const pts = koPts - spent + combo + lucky + champ + jackpot;
+  return {pts, correct, wrong, spent, combo, lucky, champ, jackpot, hasBet: bets.length > 0, hasJp: joinedAnyJackpot(uid)};
 }
 function renderLeaderboard() {
   const approved = Object.entries(users).filter(([,u]) => u.approved);
   let rows = approved.map(([uid, u]) => ({uid, name: u.name, ...phaseStats(uid, lbMode)}));
 
   if (lbMode === 'ko') {
-    // Vào bảng knockout nếu đã bắt đầu dự đoán HOẶC đã mua/trúng vật phẩm HOẶC cược vô địch
-    rows = rows.filter(r => isUserActive(r.uid) || r.spent > 0 || r.lucky > 0 || r.hasBet);
+    // Vào bảng knockout nếu đã tham gia bất kỳ hoạt động nào
+    rows = rows.filter(r => isUserActive(r.uid) || r.spent > 0 || r.lucky > 0 || r.hasBet || r.hasJp);
   } else {
     // Vòng bảng: chỉ ai có dữ liệu điểm vòng bảng
     rows = rows.filter(r => (r.correct + r.wrong) > 0);
@@ -1890,12 +2053,13 @@ function renderLeaderboard() {
       const comboTxt = (lbMode === 'ko' && p.combo > 0) ? ` · 🔥+${p.combo.toLocaleString('vi-VN')}` : '';
       const luckyTxt = (lbMode === 'ko' && p.lucky > 0) ? ` · 🎁+${p.lucky.toLocaleString('vi-VN')}` : '';
       const champTxt = (lbMode === 'ko' && p.champ) ? ` · 👑${p.champ>0?'+':''}${p.champ.toLocaleString('vi-VN')}` : '';
+      const jpTxt = (lbMode === 'ko' && p.jackpot) ? ` · 💰${p.jackpot>0?'+':''}${p.jackpot.toLocaleString('vi-VN')}` : '';
       return `
         <div class="lb-card">
           <div class="lb-rank r${i+1}">${i < 3 ? crowns[i] : i+1}</div>
           <div style="flex:1">
             <div class="lb-name">${starWrap(p.uid, p.name)}${isMe?'<span class="me-badge">Bạn</span>':''}</div>
-            <div class="lb-sub">${p.correct} đúng · ${p.wrong} sai${spentTxt}${comboTxt}${luckyTxt}${champTxt}</div>
+            <div class="lb-sub">${p.correct} đúng · ${p.wrong} sai${spentTxt}${comboTxt}${luckyTxt}${champTxt}${jpTxt}</div>
           </div>
           <div class="lb-pts ${ptsClass}">${fmtPts(p.pts)}đ</div>
         </div>
@@ -2342,6 +2506,42 @@ async function confirmChampBet() {
 }
 
 // ══════════════════════════════════════════════
+//  JACKPOT – đoán số cú sút trúng đích
+// ══════════════════════════════════════════════
+let jpActiveMatch = null;
+function openJackpot(mid) {
+  const m = MATCHES.find(x => x.id === mid); if (!m) return;
+  if (isLocked(m)) { showToast('Trận đã khoá, không tham gia được'); return; }
+  jpActiveMatch = mid;
+  const rt = resolveTeams()[mid];
+  document.getElementById('jp-modal-sub').textContent = `${rt.team1} vs ${rt.team2} · ${m.round}`;
+  const ex = jackpots[mid]?.[currentUser.id];
+  document.getElementById('jp-guess').value = ex != null ? ex : 5;
+  const already = jpJoined(currentUser.id, mid);
+  document.getElementById('jp-modal-fee').textContent = already
+    ? 'Bạn đã tham gia — đổi số KHÔNG mất thêm phí'
+    : `Phí tham gia: ${JACKPOT_FEE.toLocaleString('vi-VN')}đ (trừ vào bảng xếp hạng KO)`;
+  document.getElementById('jp-modal-overlay').classList.add('open');
+}
+function closeJpModal(e) {
+  if (e && e.type === 'click' && e.target !== document.getElementById('jp-modal-overlay')) return;
+  document.getElementById('jp-modal-overlay').classList.remove('open');
+}
+async function confirmJackpot() {
+  if (!currentUser || jpActiveMatch == null) return;
+  const m = MATCHES.find(x => x.id === jpActiveMatch);
+  if (isLocked(m)) { showToast('Trận đã khoá'); return; }
+  const g = parseInt(document.getElementById('jp-guess').value);
+  if (isNaN(g) || g < 0) { showToast('Nhập số hợp lệ'); return; }
+  const me = currentUser.id;
+  const already = jpJoined(me, jpActiveMatch);
+  await fbSet(`${DB}/jackpot/${jpActiveMatch}/${me}`, g); // phí 5.000đ tính trong jackpotNet
+  document.getElementById('jp-modal-overlay').classList.remove('open');
+  showToast(already ? `✅ Đã đổi số đoán: ${g}` : `✅ Đã tham gia Jackpot · đoán ${g} · −${JACKPOT_FEE.toLocaleString('vi-VN')}đ`);
+  renderMatches();
+}
+
+// ══════════════════════════════════════════════
 //  ADMIN
 // ══════════════════════════════════════════════
 async function adminLogin() {
@@ -2354,6 +2554,46 @@ async function adminLogin() {
   renderAdminMatchSelect();
   renderAdminOdds();
   renderAdminChampionSelect();
+  renderAdminJpSelect();
+}
+function renderAdminJpSelect() {
+  const sel = document.getElementById('admin-jp-select');
+  if (!sel) return;
+  const resolved = resolveTeams();
+  sel.innerHTML = '<option value="">-- Chọn trận --</option>' +
+    MATCHES.filter(m => teamsResolved(m, resolved)).map(m => {
+      const rt = resolved[m.id];
+      const done = shotsOnTarget[m.id] != null ? ` ✅(${shotsOnTarget[m.id]})` : '';
+      return `<option value="${m.id}">${m.round}: ${rt.team1} vs ${rt.team2}${done}</option>`;
+    }).join('');
+  document.getElementById('admin-jp-info').textContent = '';
+  document.getElementById('admin-jp-result').innerHTML = '';
+}
+function onAdminJpSelect() {
+  const id = parseInt(document.getElementById('admin-jp-select').value);
+  if (!id) return;
+  document.getElementById('admin-jp-shots').value = shotsOnTarget[id] != null ? shotsOnTarget[id] : 0;
+  document.getElementById('admin-jp-info').textContent = `${jpCount(id)} người chơi · hũ ${jpPool(id).toLocaleString('vi-VN')}đ`;
+  document.getElementById('admin-jp-result').innerHTML = '';
+}
+async function adminSaveShots() {
+  const id = parseInt(document.getElementById('admin-jp-select').value);
+  if (!id) { showToast('Chọn trận trước'); return; }
+  const shots = parseInt(document.getElementById('admin-jp-shots').value);
+  if (isNaN(shots) || shots < 0) { showToast('Nhập số hợp lệ'); return; }
+  await fbSet(`${DB}/shotsOnTarget/${id}`, shots);
+  shotsOnTarget[id] = shots;
+  const w = jpWinners(id) || {winners: []};
+  const pool = jpPool(id);
+  const share = jpShare(id, w.winners.length);
+  const names = w.winners.map(u => users[u]?.name || '?').join(', ');
+  document.getElementById('admin-jp-result').innerHTML = w.winners.length
+    ? `<span style="color:var(--gold);font-weight:800">🏆 ${names} thắng hũ ${pool.toLocaleString('vi-VN')}đ · mỗi người nhận ${share.toLocaleString('vi-VN')}đ (sau 5% thuế quỹ)</span>`
+    : `<span style="color:var(--text2)">Chưa có ai chơi trận này</span>`;
+  showToast(`✅ Đã lưu ${shots} cú & chia hũ`);
+  renderAdminJpSelect();
+  document.getElementById('admin-jp-select').value = id;
+  onAdminJpSelect();
 }
 function renderAdminOdds() {
   document.getElementById('admin-odds-correct').value = curCorrect();
