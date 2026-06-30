@@ -323,6 +323,10 @@
     .lb-pts.pos { color: var(--green); }
     .lb-pts.neg { color: var(--red); }
     .me-badge { font-size: 10px; background: var(--accent); color: #000; border-radius: 6px; padding: 1px 5px; font-weight: 800; margin-left: 5px; }
+    .spender-badge {
+      font-size: 10px; background: linear-gradient(135deg, #ff6b35, #ff4444); color: #fff;
+      border-radius: 8px; padding: 1px 7px; font-weight: 800; margin-left: 5px; white-space: nowrap;
+    }
 
     /* ── ADMIN ── */
     #admin-pwd-input, #admin-match-select {
@@ -1222,16 +1226,32 @@ function comboBonus(uid) {
   return bonus;
 }
 // Trang trí tên: ưu tiên skin con giáp (màu + hình), cộng thêm ⭐ nếu có Ngôi sao
+// "Thánh nướng tiền" = người tiêu nhiều nhất ở trang Vật phẩm (spent cao nhất)
+function topSpenderId() {
+  let best = null, max = 0;
+  Object.entries(users).forEach(([uid, u]) => {
+    if (!u.approved || u.rejected) return;
+    const s = spentOf(uid);
+    if (s > max) { max = s; best = uid; }
+  });
+  return max > 0 ? best : null;
+}
+function isTopSpender(uid) { return !!uid && uid === topSpenderId(); }
 function starWrap(uid, name) {
+  const flame = isTopSpender(uid) ? ' 🔥' : ''; // huy hiệu Thánh nướng tiền
   const list = equippedSkins(uid);
   const star = hasStar(uid) ? '⭐' : '';
+  let inner;
   if (list.length) {
     const color = list[0].color;                 // skin chính quyết định màu chữ
     const emojis = list.map(s => s.emoji).join(''); // khoe tất cả skin đang trang bị
-    return `<span style="color:${color};font-weight:900;text-shadow:0 0 8px ${color}80">${emojis}${star}${name}</span>`;
+    inner = `<span style="color:${color};font-weight:900;text-shadow:0 0 8px ${color}80">${emojis}${star}${name}</span>`;
+  } else if (star) {
+    inner = `<span class="star-name">⭐${name}</span>`;
+  } else {
+    inner = name;
   }
-  if (star) return `<span class="star-name">⭐${name}</span>`;
-  return name;
+  return inner + flame;
 }
 // Trúng nếu tỷ số chính HOẶC tỷ số dự phòng khớp kết quả
 function predHits(matchId, uid, actual) {
@@ -2091,7 +2111,7 @@ function renderLeaderboard() {
         <div class="lb-card">
           <div class="lb-rank r${i+1}">${i < 3 ? crowns[i] : i+1}</div>
           <div style="flex:1">
-            <div class="lb-name">${starWrap(p.uid, p.name)}${isMe?'<span class="me-badge">Bạn</span>':''}</div>
+            <div class="lb-name">${starWrap(p.uid, p.name)}${isMe?'<span class="me-badge">Bạn</span>':''}${isTopSpender(p.uid)?'<span class="spender-badge">🔥 Thánh nướng tiền</span>':''}</div>
             <div class="lb-sub">${p.correct} đúng · ${p.wrong} sai${spentTxt}${comboTxt}${luckyTxt}${champTxt}${jpTxt}</div>
           </div>
           <div class="lb-pts ${ptsClass}">${fmtPts(p.pts)}đ</div>
@@ -2211,7 +2231,10 @@ function renderShop() {
       }).join('')}
     </div>`;
 
-  document.getElementById('shop-list').innerHTML = itemsHtml + comboHtml + luckyHtml + skinHtml;
+  const trollHtml = isTopSpender(me)
+    ? `<div style="background:linear-gradient(135deg,#ff6b35,#ff4444);color:#fff;border-radius:var(--r);padding:10px 14px;margin-bottom:12px;font-weight:800;text-align:center">🔥 Bạn đang là THÁNH NƯỚNG TIỀN của cả nhóm! Tiêu mạnh thật 🤑</div>`
+    : '';
+  document.getElementById('shop-list').innerHTML = trollHtml + itemsHtml + comboHtml + luckyHtml + skinHtml;
 }
 async function claimCombo() {
   if (!currentUser) return;
