@@ -1182,9 +1182,21 @@ function ptsForResult(uid, mid, ok, odds) {
   return (x2UsedOn(uid, mid) ? 2 : 1) * odds.c;
 }
 // Skin con giáp
+const MAX_EQUIP_SKINS = 5; // khoe tối đa 5 skin cùng lúc
 function skinById(id) { return SKINS.find(s => s.id === id) || null; }
 function ownsSkin(uid, id) { return !!shop[uid]?.skins?.[id]; }
-function activeSkin(uid) { const id = shop[uid]?.skin; return id ? skinById(id) : null; }
+// Danh sách skin đang khoe (ordered). [0] = skin chính (quyết định màu chữ). Tương thích dữ liệu cũ shop.skin
+function equippedIds(uid) {
+  const s = shop[uid]; if (!s) return [];
+  let arr = [];
+  if (Array.isArray(s.equipped)) arr = s.equipped;
+  else if (s.equipped && typeof s.equipped === 'object') arr = Object.values(s.equipped);
+  else if (s.skin) arr = [s.skin];
+  return arr.filter(id => id && ownsSkin(uid, id));
+}
+function equippedSkins(uid) { return equippedIds(uid).map(id => skinById(id)).filter(Boolean).slice(0, MAX_EQUIP_SKINS); }
+function isEquipped(uid, id) { return equippedIds(uid).includes(id); }
+function activeSkin(uid) { return equippedSkins(uid)[0] || null; } // skin chính (màu)
 // Combo streak + lì xì
 function ownsCombo(uid)     { return !!shop[uid]?.combo; }
 function luckyBonusOf(uid)  { return shop[uid]?.luckyBonus || 0; }
@@ -1210,10 +1222,12 @@ function comboBonus(uid) {
 }
 // Trang trí tên: ưu tiên skin con giáp (màu + hình), cộng thêm ⭐ nếu có Ngôi sao
 function starWrap(uid, name) {
-  const sk = activeSkin(uid);
+  const list = equippedSkins(uid);
   const star = hasStar(uid) ? '⭐' : '';
-  if (sk) {
-    return `<span style="color:${sk.color};font-weight:900;text-shadow:0 0 8px ${sk.color}80">${sk.emoji}${star}${name}</span>`;
+  if (list.length) {
+    const color = list[0].color;                 // skin chính quyết định màu chữ
+    const emojis = list.map(s => s.emoji).join(''); // khoe tất cả skin đang trang bị
+    return `<span style="color:${color};font-weight:900;text-shadow:0 0 8px ${color}80">${emojis}${star}${name}</span>`;
   }
   if (star) return `<span class="star-name">⭐${name}</span>`;
   return name;
@@ -2160,19 +2174,27 @@ function renderShop() {
   // 12 SKIN CON GIÁP
   const tokenNote = skinTokensOf(me) > 0
     ? `<p style="font-size:12px;color:var(--accent);font-weight:800;margin:-4px 0 8px">🎟️ Bạn có ${skinTokensOf(me)} vé đổi skin MIỄN PHÍ — bấm "Mua" bất kỳ skin nào.</p>` : '';
+  const eqIds = equippedIds(me);
   const skinHtml = `
     <p class="section-title" style="margin-top:22px">🐲 Skin 12 con giáp · đồng giá ${SKIN_PRICE.toLocaleString('vi-VN')}đ</p>
     ${tokenNote}
-    <p style="font-size:12px;color:var(--text2);margin:-4px 0 12px">Mua skin để tên hiện màu nổi bật kèm hình con giáp. Bấm skin đã có để trang bị / gỡ.</p>
+    <p style="font-size:12px;color:var(--text2);margin:-4px 0 12px">Mua skin rồi bấm <b>Khoe</b> để hiện cạnh tên — khoe tối đa <b>${MAX_EQUIP_SKINS}</b> skin (đang khoe: ${eqIds.length}/${MAX_EQUIP_SKINS}). Skin <b>🎨 màu chính</b> quyết định màu chữ tên.</p>
     <div class="skin-grid">
       ${SKINS.map(sk => {
         const owned = ownsSkin(me, sk.id);
-        const eq = shop[me]?.skin === sk.id;
-        const btn = !owned
-          ? `<button class="sbtn" onclick="buySkin('${sk.id}')">Mua ${SKIN_PRICE.toLocaleString('vi-VN')}đ</button>`
-          : eq
-            ? `<button class="sbtn equipped" onclick="buySkin('${sk.id}')">✓ Đang dùng</button>`
-            : `<button class="sbtn owned" onclick="buySkin('${sk.id}')">Trang bị</button>`;
+        const eq = isEquipped(me, sk.id);
+        const primary = eqIds[0] === sk.id;
+        let btn;
+        if (!owned) {
+          btn = `<button class="sbtn" onclick="buySkin('${sk.id}')">Mua ${SKIN_PRICE.toLocaleString('vi-VN')}đ</button>`;
+        } else if (!eq) {
+          btn = `<button class="sbtn owned" onclick="buySkin('${sk.id}')">Khoe</button>`;
+        } else if (primary) {
+          btn = `<button class="sbtn equipped" onclick="buySkin('${sk.id}')">🎨 Màu chính ✓</button>`;
+        } else {
+          btn = `<button class="sbtn equipped" onclick="buySkin('${sk.id}')">✓ Khoe</button>
+                 <button class="sbtn" style="margin-top:4px;background:var(--card2);color:var(--gold);font-size:11px" onclick="setPrimarySkin('${sk.id}')">🎨 Màu chính</button>`;
+        }
         return `
           <div class="skin-card ${eq?'equipped':''}">
             <div class="se" style="filter:drop-shadow(0 0 6px ${sk.color})">${sk.emoji}</div>
@@ -2201,24 +2223,50 @@ async function claimFreeHeart() {
   showToast('🎁 Đã nhận 1 Trái tim miễn phí!');
   renderShop();
 }
+// Ghi danh sách skin đang khoe (kèm dọn field cũ shop.skin)
+async function setEquipped(me, arr) {
+  await fbSet(`${DB}/shop/${me}/equipped`, arr);
+  if (shop[me]?.skin) await fbSet(`${DB}/shop/${me}/skin`, null);
+  if (shop[me]) shop[me].equipped = arr;
+}
+async function addEquip(me, id) {
+  const eq = equippedIds(me).slice();
+  if (!eq.includes(id) && eq.length < MAX_EQUIP_SKINS) eq.push(id);
+  await setEquipped(me, eq);
+}
+// Bấm skin đã sở hữu → khoe / bỏ khoe
+async function toggleEquip(id) {
+  const me = currentUser.id;
+  let eq = equippedIds(me).slice();
+  if (eq.includes(id)) { eq = eq.filter(x => x !== id); showToast('Đã bỏ khoe skin'); }
+  else {
+    if (eq.length >= MAX_EQUIP_SKINS) { showToast(`Chỉ khoe tối đa ${MAX_EQUIP_SKINS} skin`); return; }
+    eq.push(id); showToast('Đã khoe skin');
+  }
+  await setEquipped(me, eq);
+  renderShop();
+}
+async function setPrimarySkin(id) {
+  const me = currentUser.id;
+  let eq = equippedIds(me).slice();
+  if (!eq.includes(id)) return;
+  eq = [id, ...eq.filter(x => x !== id)];
+  await setEquipped(me, eq);
+  showToast('Đã đặt làm màu chính');
+  renderShop();
+}
 async function buySkin(id) {
   if (!currentUser) return;
   const me = currentUser.id;
   const sk = skinById(id);
   if (!sk) return;
-  if (ownsSkin(me, id)) {
-    // đã sở hữu → trang bị / gỡ
-    const cur = shop[me]?.skin;
-    await fbSet(`${DB}/shop/${me}/skin`, cur === id ? null : id);
-    showToast(cur === id ? 'Đã gỡ skin' : `Đã trang bị ${sk.name}`);
-    renderShop();
-    return;
-  }
+  if (ownsSkin(me, id)) { return toggleEquip(id); } // đã có → khoe/bỏ khoe
   // Vé đổi skin miễn phí (từ vòng quay)
   if (skinTokensOf(me) > 0) {
     await fbSet(`${DB}/shop/${me}/skinTokens`, skinTokensOf(me) - 1);
     await fbSet(`${DB}/shop/${me}/skins/${id}`, true);
-    await fbSet(`${DB}/shop/${me}/skin`, id);
+    if (shop[me]) (shop[me].skins = shop[me].skins || {})[id] = true;
+    await addEquip(me, id);
     showToast(`🎟️ Đổi skin ${sk.name} miễn phí!`);
     renderShop();
     return;
@@ -2230,8 +2278,9 @@ async function buySkin(id) {
   await fbSet(`${DB}/shop/${me}/spent`, spentOf(me) + price);
   if (voucher) await fbSet(`${DB}/shop/${me}/voucher50`, null);
   await fbSet(`${DB}/shop/${me}/skins/${id}`, true);
-  await fbSet(`${DB}/shop/${me}/skin`, id); // tự trang bị
-  showToast(`✅ Đã mua & trang bị ${sk.name} (−${price.toLocaleString('vi-VN')}đ)`);
+  if (shop[me]) (shop[me].skins = shop[me].skins || {})[id] = true;
+  await addEquip(me, id); // tự khoe
+  showToast(`✅ Đã mua & khoe ${sk.name} (−${price.toLocaleString('vi-VN')}đ)`);
   renderShop();
 }
 async function buyItem(type) {
