@@ -628,17 +628,30 @@
     #champ-modal-box h3 { font-size: 20px; font-weight: 900; margin: 4px 0 2px; }
 
     /* ── JACKPOT ── */
-    #jp-modal-overlay {
+    #jp-spin-overlay {
       display: none; position: fixed; inset: 0; z-index: 260;
       background: rgba(0,0,0,.8); backdrop-filter: blur(4px);
       align-items: center; justify-content: center; padding: 20px;
     }
-    #jp-modal-overlay.open { display: flex; }
-    #jp-modal-box {
+    #jp-spin-overlay.open { display: flex; }
+    #jp-spin-box {
       background: var(--card); border: 2px solid var(--gold); border-radius: 20px;
-      padding: 22px 20px; width: 100%; max-width: 320px; text-align: center;
+      padding: 22px 20px; width: 100%; max-width: 340px; text-align: center;
     }
-    #jp-modal-box h3 { font-size: 19px; font-weight: 900; margin-bottom: 2px; }
+    #jp-spin-box h3 { font-size: 19px; font-weight: 900; margin-bottom: 2px; }
+    #jp-spin-list {
+      max-height: 240px; overflow-y: auto; margin: 14px 0; display: flex; flex-direction: column; gap: 6px;
+    }
+    .jp-spin-row {
+      padding: 10px; border-radius: 10px; background: var(--card2);
+      border: 2px solid var(--border); font-size: 14px; font-weight: 800;
+      transition: transform .06s, box-shadow .06s, border-color .06s;
+    }
+    .jp-spin-row.lit {
+      border-color: var(--gold); background: rgba(255,215,0,.2);
+      box-shadow: 0 0 16px rgba(255,215,0,.6); transform: scale(1.04);
+    }
+    #jp-spin-result { min-height: 26px; margin: 6px 0 12px; font-weight: 800; color: var(--gold); }
     .jp-pool {
       background: linear-gradient(135deg, #2a1f00, #163520);
       border: 2px solid var(--gold); border-radius: var(--r);
@@ -809,15 +822,12 @@
     <button class="btn-primary" onclick="adminSaveChampion()">💾 Lưu nhà vô địch</button>
     <p style="font-size:11px;color:var(--text2);margin-top:6px">Để trống = tự lấy đội thắng trận chung kết. Lưu đội = chốt nhà vô địch & quyết toán cược.</p>
 
-    <!-- JACKPOT: SỐ CÚ SÚT TRÚNG ĐÍCH -->
-    <p class="section-title" style="margin-top:24px">🎰 Jackpot: nhập số cú sút trúng đích</p>
+    <!-- JACKPOT: CHỌN NGƯỜI QUAY -->
+    <p class="section-title" style="margin-top:24px">🎰 Jackpot: chọn người quay</p>
     <select id="admin-jp-select" onchange="onAdminJpSelect()" style="width:100%;padding:14px;background:var(--card2);border:1px solid var(--border);border-radius:var(--r);color:var(--text);font-size:15px;margin-bottom:8px"></select>
     <div id="admin-jp-info" style="font-size:12px;color:var(--text2);margin-bottom:8px"></div>
-    <div class="admin-score-row">
-      <span style="flex:1;text-align:right;font-size:13px;font-weight:700">Số cú sút trúng đích</span>
-      <input type="number" id="admin-jp-shots" min="0" max="60" value="0" style="width:80px">
-    </div>
-    <button class="btn-primary" onclick="adminSaveShots()">💾 Lưu & chia hũ</button>
+    <select id="admin-jp-spinner" style="width:100%;padding:14px;background:var(--card2);border:1px solid var(--border);border-radius:var(--r);color:var(--text);font-size:15px;margin-bottom:8px"></select>
+    <button class="btn-primary" onclick="adminSaveSpinner()">💾 Lưu người quay</button>
     <div id="admin-jp-result" style="margin-top:10px;font-size:13px"></div>
 
     <!-- NHẬP KẾT QUẢ -->
@@ -910,17 +920,15 @@
   </div>
 </div>
 
-<!-- ══════════════ JACKPOT MODAL ══════════════ -->
-<div id="jp-modal-overlay" onclick="closeJpModal(event)">
-  <div id="jp-modal-box">
-    <h3 id="jp-modal-title">💰 Tham gia Jackpot</h3>
-    <p class="modal-sub" id="jp-modal-sub"></p>
-    <p style="font-size:13px;color:var(--text2);margin-bottom:6px">Đoán số cú sút trúng đích cả trận:</p>
-    <input type="number" id="jp-guess" min="0" max="60" step="1" value="5"
-      style="width:100%;padding:16px;font-size:24px;font-weight:900;text-align:center;background:var(--card2);border:1px solid var(--border);border-radius:var(--r);color:var(--text);margin-bottom:10px" />
-    <div id="jp-modal-fee" style="font-size:12px;color:var(--gold);font-weight:800;margin-bottom:14px"></div>
-    <button class="btn-primary" onclick="confirmJackpot()">✅ Xác nhận</button>
-    <button class="btn-secondary" onclick="closeJpModal()">Huỷ</button>
+<!-- ══════════════ JACKPOT QUAY MODAL ══════════════ -->
+<div id="jp-spin-overlay" onclick="closeJpSpin(event)">
+  <div id="jp-spin-box">
+    <h3>🎰 Quay Jackpot</h3>
+    <p class="modal-sub" id="jp-spin-sub"></p>
+    <div id="jp-spin-list"></div>
+    <div id="jp-spin-result"></div>
+    <button class="btn-primary" id="jp-spin-btn" onclick="doJpSpin()">Quay 🎰</button>
+    <button class="btn-secondary" onclick="closeJpSpin()">Đóng</button>
   </div>
 </div>
 
@@ -1123,8 +1131,9 @@ let champBets   = {}; // {uid:{team,stake,odds}} – cược nhà vô địch
 let oddsCfg     = {correct: 50000, wrong: 10000}; // tỷ lệ điểm HIỆN TẠI (admin chỉnh)
 let matchOdds   = {}; // {matchId:{correct,wrong}} – tỷ lệ ĐÃ KHOÁ của từng trận khi chấm
 let championWinner = ''; // nhà vô địch do admin nhập (ưu tiên hơn tự suy từ chung kết)
-let jackpots    = {}; // {matchId:{uid: guess}} – đoán số cú sút trúng đích
-let shotsOnTarget = {}; // {matchId: số cú sút trúng đích thực tế (admin nhập)}
+let jackpots    = {}; // {matchId:{uid:true}} – ai đã tham gia
+let jpSpinner   = {}; // {matchId: uid} – người được admin chọn để quay
+let jpWinner    = {}; // {matchId: uid} – người thắng sau khi quay
 
 // ══════════════════════════════════════════════
 //  HELPERS
@@ -1342,42 +1351,28 @@ function champOpenSlot(uid) {
 // Nhà vô địch: ưu tiên admin nhập, nếu không thì lấy đội thắng chung kết (trận 104)
 function getChampion() { return championWinner || koWinner(104, resolveTeams()); }
 
-// ── JACKPOT: đoán số cú sút trúng đích ──
+// ── JACKPOT: tham gia 1 chạm, admin chọn người quay, quay ra người thắng ──
 const JACKPOT_FEE = 5000;
 const JACKPOT_TAX = 0.05; // người thắng đóng 5% thuế lại cho quỹ
-// Phần thưởng thực nhận của mỗi người thắng (sau thuế)
-function jpShare(mid, winnersCount) {
-  if (!winnersCount) return 0;
-  return Math.round(jpPool(mid) / winnersCount * (1 - JACKPOT_TAX));
-}
-function jpEntries(mid) {  // {uid: guess} của người ĐÃ DUYỆT
+function jpParticipants(mid) {  // danh sách uid đã tham gia & được duyệt (sắp xếp theo tên)
   const e = jackpots[mid] || {};
-  const out = {};
-  Object.entries(e).forEach(([uid, g]) => { if (users[uid]?.approved && g !== undefined && g !== null) out[uid] = Number(g); });
-  return out;
+  return Object.keys(e).filter(uid => e[uid] && users[uid]?.approved)
+    .sort((a, b) => (users[a]?.name || '').localeCompare(users[b]?.name || '', 'vi'));
 }
-function jpCount(mid) { return Object.keys(jpEntries(mid)).length; }
+function jpCount(mid) { return jpParticipants(mid).length; }
 function jpPool(mid)  { return jpCount(mid) * JACKPOT_FEE; }
-function jpJoined(uid, mid) { const e = jackpots[mid] || {}; return e[uid] !== undefined && e[uid] !== null; }
-// Người thắng của 1 trận (khi đã có kết quả): lệch tuyệt đối nhỏ nhất, hoà chia đều
-function jpWinners(mid) {
-  const actual = shotsOnTarget[mid];
-  if (actual === undefined || actual === null || actual === '') return null;
-  const entries = jpEntries(mid);
-  const uids = Object.keys(entries);
-  if (!uids.length) return {winners: [], min: 0};
-  let min = Infinity;
-  uids.forEach(u => { const d = Math.abs(entries[u] - Number(actual)); if (d < min) min = d; });
-  return {winners: uids.filter(u => Math.abs(entries[u] - Number(actual)) === min), min};
-}
-// Tổng lời/lỗ jackpot của 1 user trên tất cả các trận
+function jpJoined(uid, mid) { return !!jackpots[mid]?.[uid]; }
+function jpSpinnerOf(mid) { return jpSpinner[mid] || null; }
+function jpWinnerOf(mid)  { return jpWinner[mid] || null; }
+// Phần thưởng thực nhận của người thắng (sau 5% thuế)
+function jpShare(mid) { return Math.round(jpPool(mid) * (1 - JACKPOT_TAX)); }
+// Tổng lời/lỗ jackpot của 1 user
 function jackpotNet(uid) {
   let net = 0;
   for (const mid of Object.keys(jackpots)) {
     if (!jpJoined(uid, mid)) continue;
-    net -= JACKPOT_FEE;                 // phí tham gia
-    const w = jpWinners(mid);
-    if (w && w.winners.includes(uid)) net += jpShare(mid, w.winners.length); // thắng → chia hũ (đã trừ 5% thuế)
+    net -= JACKPOT_FEE;                          // phí tham gia
+    if (jpWinnerOf(mid) === uid) net += jpShare(mid); // trúng → ăn hũ (đã trừ thuế)
   }
   return net;
 }
@@ -1411,7 +1406,8 @@ function initFirebase() {
     db.ref(`${DB}/matchOdds`).on('value', s => { matchOdds = s.val() || {}; onDataUpdate(); });
     db.ref(`${DB}/championWinner`).on('value', s => { championWinner = s.val() || ''; onDataUpdate(); });
     db.ref(`${DB}/jackpot`).on('value', s => { jackpots = s.val() || {}; onDataUpdate(); });
-    db.ref(`${DB}/shotsOnTarget`).on('value', s => { shotsOnTarget = s.val() || {}; onDataUpdate(); });
+    db.ref(`${DB}/jpSpinner`).on('value', s => { jpSpinner = s.val() || {}; onDataUpdate(); });
+    db.ref(`${DB}/jpWinner`).on('value', s => { jpWinner = s.val() || {}; onDataUpdate(); });
   } catch(e) { showToast('⚠️ Lỗi kết nối Firebase'); }
 }
 function onDataUpdate() {
@@ -1447,16 +1443,14 @@ function renderWinnerBanner() {
     msgs.push(`🎉 Chúc mừng <b>${winners.join(', ')}</b> đã đoán trúng tỷ số ${results[chosen.id]} trận ${rt.team1||''} vs ${rt.team2||''}! 🏆 Mang tiền về cho mẹ nhé!`);
   }
 
-  // (2) Người thắng Jackpot (các trận admin đã nhập số cú sút)
-  MATCHES.filter(m => shotsOnTarget[m.id] != null && jpCount(m.id) > 0)
+  // (2) Người thắng Jackpot (đã quay xong)
+  MATCHES.filter(m => jpWinnerOf(m.id))
     .sort((a, b) => new Date(b.kickoff) - new Date(a.kickoff))
     .slice(0, 3)
     .forEach(m => {
-      const w = jpWinners(m.id) || {winners: []};
-      if (!w.winners.length) return;
-      const names = w.winners.map(u => users[u]?.name || '?').join(', ');
+      const wUid = jpWinnerOf(m.id);
       const rt = resolved[m.id] || {};
-      msgs.push(`💰 <b>${names}</b> ẵm hũ Jackpot trận ${rt.team1||''} vs ${rt.team2||''} (đoán sát ${shotsOnTarget[m.id]} cú sút)! 🤑`);
+      msgs.push(`💰 <b>${users[wUid]?.name || '?'}</b> trúng hũ Jackpot trận ${rt.team1||''} vs ${rt.team2||''} (+${jpShare(m.id).toLocaleString('vi-VN')}đ)! 🤑`);
     });
 
   if (!msgs.length) { banner.classList.remove('show'); return; }
@@ -1810,33 +1804,36 @@ function renderMatchCard(m, resolved) {
     </div>
   `;
 }
-// Khu Jackpot trên thẻ trận: nút tham gia (trận mở) hoặc người thắng (đã có kết quả)
+// Khu Jackpot trên thẻ trận
 function jpMatchCardHtml(m) {
   const me = currentUser.id;
-  const guess = jackpots[m.id]?.[me];
+  const joined = jpJoined(me, m.id);
   const count = jpCount(m.id), pool = jpPool(m.id);
-  const actual = shotsOnTarget[m.id];
-  // Đã có số cú sút → hiện người thắng
-  if (actual != null && actual !== '') {
-    if (!count) return '';
-    const w = jpWinners(m.id) || {winners: []};
-    const names = w.winners.map(u => starWrap(u, users[u]?.name || '?')).join(', ');
-    const share = jpShare(m.id, w.winners.length);
-    const iWon = w.winners.includes(me);
-    return `<div class="jp-result">💰 Jackpot · thực tế <b>${actual}</b> cú sút · hũ ${pool.toLocaleString('vi-VN')}đ
-      <div style="margin-top:3px;color:var(--gold);font-weight:800">🏆 ${names || '—'}${w.winners.length?` · +${share.toLocaleString('vi-VN')}đ/người`:''}</div>
-      ${guess!=null?`<div style="color:${iWon?'var(--green)':'var(--text2)'}">Bạn đoán ${guess}${iWon?' — TRÚNG! 🎉':''}</div>`:''}</div>`;
+  const winner = jpWinnerOf(m.id);
+  const spinner = jpSpinnerOf(m.id);
+
+  // Đã có người thắng → công bố
+  if (winner) {
+    const iWon = winner === me;
+    return `<div class="jp-result">💰 Jackpot · ${count} người · hũ ${pool.toLocaleString('vi-VN')}đ
+      <div style="margin-top:3px;color:var(--gold);font-weight:800">🏆 ${starWrap(winner, users[winner]?.name||'?')} · +${jpShare(m.id).toLocaleString('vi-VN')}đ ${iWon?'— BẠN THẮNG! 🎉':''}</div></div>`;
   }
-  // Đã khoá, chờ kết quả
+  // Đã khoá, chưa quay
   if (isLocked(m)) {
-    if (guess == null && !count) return '';
-    return `<div class="jp-result" style="color:var(--text2)">💰 Jackpot · ${count} người · hũ ${pool.toLocaleString('vi-VN')}đ · chờ kết quả${guess!=null?` · bạn đoán <b>${guess}</b>`:''}</div>`;
+    if (!count) return '';
+    if (!spinner) {
+      return `<div class="jp-result" style="color:var(--text2)">💰 Jackpot · ${count} người · hũ ${pool.toLocaleString('vi-VN')}đ · chờ admin chọn người quay${joined?' · bạn đã tham gia':''}</div>`;
+    }
+    if (spinner === me) {
+      return `<button class="jp-match-btn" onclick="event.stopPropagation(); openJpSpin(${m.id})">🎰 BẠN ĐƯỢC QUAY JACKPOT! Quay ngay (hũ ${pool.toLocaleString('vi-VN')}đ)</button>`;
+    }
+    return `<div class="jp-result" style="color:var(--text2)">💰 Jackpot · ${count} người · hũ ${pool.toLocaleString('vi-VN')}đ · chờ <b>${users[spinner]?.name||'?'}</b> quay${joined?' · bạn đã tham gia':''}</div>`;
   }
-  // Còn mở → nút tham gia nổi bật
-  const label = guess != null
-    ? `💰 Jackpot: bạn đoán ${guess} cú · ${count} người · Đổi`
-    : `💰 THAM GIA JACKPOT ${JACKPOT_FEE.toLocaleString('vi-VN')}đ${pool>0?` · hũ ${pool.toLocaleString('vi-VN')}đ`:''}`;
-  return `<button class="jp-match-btn${guess!=null?' joined':''}" onclick="event.stopPropagation(); openJackpot(${m.id})">${label}</button>`;
+  // Còn mở → nút tham gia (1 chạm)
+  if (joined) {
+    return `<div class="jp-result" style="color:var(--green)">💰 Đã tham gia Jackpot · ${count} người · hũ ${pool.toLocaleString('vi-VN')}đ</div>`;
+  }
+  return `<button class="jp-match-btn" onclick="event.stopPropagation(); joinJackpot(${m.id})">💰 THAM GIA JACKPOT ${JACKPOT_FEE.toLocaleString('vi-VN')}đ${pool>0?` · hũ ${pool.toLocaleString('vi-VN')}đ`:''}</button>`;
 }
 function togglePreds(e, id) {
   e.stopPropagation();
@@ -2506,39 +2503,73 @@ async function confirmChampBet() {
 }
 
 // ══════════════════════════════════════════════
-//  JACKPOT – đoán số cú sút trúng đích
+//  JACKPOT – tham gia 1 chạm · admin chọn người quay · quay ra người thắng
 // ══════════════════════════════════════════════
-let jpActiveMatch = null;
-function openJackpot(mid) {
+async function joinJackpot(mid) {
+  if (!currentUser) return;
   const m = MATCHES.find(x => x.id === mid); if (!m) return;
   if (isLocked(m)) { showToast('Trận đã khoá, không tham gia được'); return; }
-  jpActiveMatch = mid;
-  const rt = resolveTeams()[mid];
-  document.getElementById('jp-modal-sub').textContent = `${rt.team1} vs ${rt.team2} · ${m.round}`;
-  const ex = jackpots[mid]?.[currentUser.id];
-  document.getElementById('jp-guess').value = ex != null ? ex : 5;
-  const already = jpJoined(currentUser.id, mid);
-  document.getElementById('jp-modal-fee').textContent = already
-    ? 'Bạn đã tham gia — đổi số KHÔNG mất thêm phí'
-    : `Phí tham gia: ${JACKPOT_FEE.toLocaleString('vi-VN')}đ (trừ vào bảng xếp hạng KO)`;
-  document.getElementById('jp-modal-overlay').classList.add('open');
-}
-function closeJpModal(e) {
-  if (e && e.type === 'click' && e.target !== document.getElementById('jp-modal-overlay')) return;
-  document.getElementById('jp-modal-overlay').classList.remove('open');
-}
-async function confirmJackpot() {
-  if (!currentUser || jpActiveMatch == null) return;
-  const m = MATCHES.find(x => x.id === jpActiveMatch);
-  if (isLocked(m)) { showToast('Trận đã khoá'); return; }
-  const g = parseInt(document.getElementById('jp-guess').value);
-  if (isNaN(g) || g < 0) { showToast('Nhập số hợp lệ'); return; }
   const me = currentUser.id;
-  const already = jpJoined(me, jpActiveMatch);
-  await fbSet(`${DB}/jackpot/${jpActiveMatch}/${me}`, g); // phí 5.000đ tính trong jackpotNet
-  document.getElementById('jp-modal-overlay').classList.remove('open');
-  showToast(already ? `✅ Đã đổi số đoán: ${g}` : `✅ Đã tham gia Jackpot · đoán ${g} · −${JACKPOT_FEE.toLocaleString('vi-VN')}đ`);
+  if (jpJoined(me, mid)) { showToast('Bạn đã tham gia rồi'); return; }
+  if (!confirm(`Tham gia Jackpot trận này với ${JACKPOT_FEE.toLocaleString('vi-VN')}đ?\n(Trừ vào bảng xếp hạng vòng loại trực tiếp)`)) return;
+  await fbSet(`${DB}/jackpot/${mid}/${me}`, true);
+  showToast(`✅ Đã tham gia Jackpot · −${JACKPOT_FEE.toLocaleString('vi-VN')}đ`);
   renderMatches();
+}
+// ── Quay Jackpot (người được admin chọn) ──
+let jpSpinMatch = null, jpSpinning = false;
+function openJpSpin(mid) {
+  const m = MATCHES.find(x => x.id === mid); if (!m) return;
+  if (jpSpinnerOf(mid) !== currentUser.id) { showToast('Bạn không phải người được chọn quay'); return; }
+  if (jpWinnerOf(mid)) { showToast('Trận này đã quay xong'); return; }
+  jpSpinMatch = mid;
+  const rt = resolveTeams()[mid];
+  document.getElementById('jp-spin-sub').textContent = `${rt.team1} vs ${rt.team2} · hũ ${jpPool(mid).toLocaleString('vi-VN')}đ`;
+  renderJpSpinList(mid, -1);
+  document.getElementById('jp-spin-result').innerHTML = `${jpCount(mid)} người tham gia — bấm Quay để chọn người thắng!`;
+  const btn = document.getElementById('jp-spin-btn');
+  btn.disabled = false; btn.textContent = 'Quay 🎰';
+  document.getElementById('jp-spin-overlay').classList.add('open');
+}
+function renderJpSpinList(mid, litIdx) {
+  const parts = jpParticipants(mid);
+  document.getElementById('jp-spin-list').innerHTML = parts.map((uid, i) =>
+    `<div class="jp-spin-row${i === litIdx ? ' lit' : ''}">${starWrap(uid, users[uid]?.name || '?')}</div>`).join('');
+}
+function closeJpSpin(e) {
+  if (e && e.type === 'click' && e.target !== document.getElementById('jp-spin-overlay')) return;
+  if (jpSpinning) return;
+  document.getElementById('jp-spin-overlay').classList.remove('open');
+}
+async function doJpSpin() {
+  if (jpSpinning || jpSpinMatch == null) return;
+  const mid = jpSpinMatch;
+  const parts = jpParticipants(mid);
+  if (!parts.length) { showToast('Chưa có ai tham gia'); return; }
+  if (jpWinnerOf(mid)) { showToast('Đã quay rồi'); return; }
+  jpSpinning = true;
+  const btn = document.getElementById('jp-spin-btn');
+  btn.disabled = true;
+  const winIdx = Math.floor(Math.random() * parts.length);
+  const total = parts.length * 4 + winIdx;   // ~4 vòng
+  let k = 0;
+  (function step() {
+    renderJpSpinList(mid, k % parts.length);
+    if (k >= total) {
+      const winUid = parts[winIdx];
+      fbSet(`${DB}/jpWinner/${mid}`, winUid);
+      jpWinner[mid] = winUid;
+      document.getElementById('jp-spin-result').innerHTML =
+        `🏆 <b>${users[winUid]?.name || '?'}</b> thắng hũ ${jpPool(mid).toLocaleString('vi-VN')}đ!<br>Nhận ${jpShare(mid).toLocaleString('vi-VN')}đ (sau 5% thuế quỹ)`;
+      jpSpinning = false;
+      setTimeout(() => renderMatches(), 1000);
+      return;
+    }
+    const p = k / total;
+    const interval = 70 + p * p * 380;
+    k++;
+    setTimeout(step, interval);
+  })();
 }
 
 // ══════════════════════════════════════════════
@@ -2561,36 +2592,38 @@ function renderAdminJpSelect() {
   if (!sel) return;
   const resolved = resolveTeams();
   sel.innerHTML = '<option value="">-- Chọn trận --</option>' +
-    MATCHES.filter(m => teamsResolved(m, resolved)).map(m => {
+    MATCHES.filter(m => teamsResolved(m, resolved) && jpCount(m.id) > 0).map(m => {
       const rt = resolved[m.id];
-      const done = shotsOnTarget[m.id] != null ? ` ✅(${shotsOnTarget[m.id]})` : '';
-      return `<option value="${m.id}">${m.round}: ${rt.team1} vs ${rt.team2}${done}</option>`;
+      const done = jpWinnerOf(m.id) ? ' 🏆' : (jpSpinnerOf(m.id) ? ' 🎰' : '');
+      return `<option value="${m.id}">${m.round}: ${rt.team1} vs ${rt.team2} (${jpCount(m.id)}đ)${done}</option>`;
     }).join('');
   document.getElementById('admin-jp-info').textContent = '';
+  document.getElementById('admin-jp-spinner').innerHTML = '';
   document.getElementById('admin-jp-result').innerHTML = '';
 }
 function onAdminJpSelect() {
   const id = parseInt(document.getElementById('admin-jp-select').value);
   if (!id) return;
-  document.getElementById('admin-jp-shots').value = shotsOnTarget[id] != null ? shotsOnTarget[id] : 0;
-  document.getElementById('admin-jp-info').textContent = `${jpCount(id)} người chơi · hũ ${jpPool(id).toLocaleString('vi-VN')}đ`;
-  document.getElementById('admin-jp-result').innerHTML = '';
+  const parts = jpParticipants(id);
+  document.getElementById('admin-jp-info').textContent = `${parts.length} người tham gia · hũ ${jpPool(id).toLocaleString('vi-VN')}đ`;
+  const cur = jpSpinnerOf(id);
+  document.getElementById('admin-jp-spinner').innerHTML =
+    '<option value="">-- Chọn người quay --</option>' +
+    parts.map(uid => `<option value="${uid}" ${cur===uid?'selected':''}>${users[uid]?.name || '?'}</option>`).join('');
+  const win = jpWinnerOf(id);
+  document.getElementById('admin-jp-result').innerHTML = win
+    ? `<span style="color:var(--gold);font-weight:800">🏆 Đã quay: ${users[win]?.name||'?'} thắng ${jpShare(id).toLocaleString('vi-VN')}đ</span>`
+    : (cur ? `<span style="color:var(--text2)">Người quay: ${users[cur]?.name||'?'} (chờ quay)</span>` : '');
 }
-async function adminSaveShots() {
+async function adminSaveSpinner() {
   const id = parseInt(document.getElementById('admin-jp-select').value);
   if (!id) { showToast('Chọn trận trước'); return; }
-  const shots = parseInt(document.getElementById('admin-jp-shots').value);
-  if (isNaN(shots) || shots < 0) { showToast('Nhập số hợp lệ'); return; }
-  await fbSet(`${DB}/shotsOnTarget/${id}`, shots);
-  shotsOnTarget[id] = shots;
-  const w = jpWinners(id) || {winners: []};
-  const pool = jpPool(id);
-  const share = jpShare(id, w.winners.length);
-  const names = w.winners.map(u => users[u]?.name || '?').join(', ');
-  document.getElementById('admin-jp-result').innerHTML = w.winners.length
-    ? `<span style="color:var(--gold);font-weight:800">🏆 ${names} thắng hũ ${pool.toLocaleString('vi-VN')}đ · mỗi người nhận ${share.toLocaleString('vi-VN')}đ (sau 5% thuế quỹ)</span>`
-    : `<span style="color:var(--text2)">Chưa có ai chơi trận này</span>`;
-  showToast(`✅ Đã lưu ${shots} cú & chia hũ`);
+  if (jpWinnerOf(id)) { showToast('Trận này đã quay xong rồi'); return; }
+  const uid = document.getElementById('admin-jp-spinner').value;
+  if (!uid) { showToast('Chọn người quay'); return; }
+  await fbSet(`${DB}/jpSpinner/${id}`, uid);
+  jpSpinner[id] = uid;
+  showToast(`✅ Đã chọn ${users[uid]?.name||'?'} quay Jackpot trận này`);
   renderAdminJpSelect();
   document.getElementById('admin-jp-select').value = id;
   onAdminJpSelect();
