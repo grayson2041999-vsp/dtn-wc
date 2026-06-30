@@ -343,6 +343,33 @@
       font-size: 10px; background: linear-gradient(135deg, #8d6e63, #5d4037); color: #fff;
       border-radius: 8px; padding: 1px 7px; font-weight: 800; margin-left: 5px; white-space: nowrap;
     }
+    .title-warm {
+      font-size: 10px; background: linear-gradient(135deg, #ff80ab, #f50057); color: #fff;
+      border-radius: 8px; padding: 1px 7px; font-weight: 800; margin-left: 5px; white-space: nowrap;
+    }
+    .lb-note {
+      background: rgba(245,0,87,.1); border: 1px solid #f50057; border-radius: var(--r);
+      padding: 8px 12px; font-size: 12px; color: var(--text); margin-bottom: 12px; text-align: center;
+    }
+    .beg-box {
+      background: rgba(255,107,53,.1); border: 1px dashed var(--accent2); border-radius: var(--r);
+      padding: 8px 12px; margin: -4px 0 8px; font-size: 12px; color: var(--text); line-height: 1.6;
+    }
+    .beg-btn {
+      border: none; border-radius: 8px; padding: 5px 12px; cursor: pointer; white-space: nowrap;
+      background: linear-gradient(135deg, #f50057, #ff80ab); color: #fff; font-size: 12px; font-weight: 900; margin-left: 4px;
+    }
+    #donate-modal-overlay {
+      display: none; position: fixed; inset: 0; z-index: 260;
+      background: rgba(0,0,0,.8); backdrop-filter: blur(4px);
+      align-items: center; justify-content: center; padding: 20px;
+    }
+    #donate-modal-overlay.open { display: flex; }
+    #donate-modal-box {
+      background: var(--card); border: 2px solid #f50057; border-radius: 20px;
+      padding: 22px 20px; width: 100%; max-width: 320px; text-align: center;
+    }
+    #donate-modal-box h3 { font-size: 18px; font-weight: 900; margin-bottom: 2px; }
 
     /* ── ADMIN ── */
     #admin-pwd-input, #admin-match-select {
@@ -882,6 +909,19 @@
   </div>
 </div>
 
+<!-- ══════════════ BỐ THÍ MODAL ══════════════ -->
+<div id="donate-modal-overlay" onclick="closeDonate(event)">
+  <div id="donate-modal-box">
+    <h3>💝 Bố thí</h3>
+    <p class="modal-sub" id="donate-sub"></p>
+    <input type="number" id="donate-amount" min="1000" max="20000" step="1000" value="5000"
+      style="width:100%;padding:14px;font-size:20px;font-weight:800;text-align:center;background:var(--card2);border:1px solid var(--border);border-radius:var(--r);color:var(--text);margin:8px 0 6px" />
+    <p style="font-size:11px;color:var(--text2);margin-bottom:14px">Người nhận sẽ bị trích 2% cho quỹ. Bố thí nhiều để thành <b>Trái tim ấm áp</b>!</p>
+    <button class="btn-primary" onclick="confirmDonate()">💝 Bố thí ngay</button>
+    <button class="btn-secondary" onclick="closeDonate()">Huỷ</button>
+  </div>
+</div>
+
 <!-- ══════════════ VIEW: LEADERBOARD ══════════════ -->
 <div id="view-leaderboard" class="view">
   <div id="lb-tabs" style="display:flex;gap:8px;margin-bottom:14px">
@@ -1287,6 +1327,10 @@ let presence    = {}; // {uid:{name,ts}} – ai đang online
 let duels       = {}; // {duelId:{...}} – thách đấu đá luân lưu
 const DUEL_MAX_STAKE = 30000;
 const DUEL_TAX = 0.02; // 2% trên tổng pot cho quỹ
+let begging     = {}; // {uid:true} – kẻ thất bại đang xin bố thí
+let donations   = {}; // {id:{from,to,amount,ts}} – tiền bố thí
+const DONATE_MAX = 20000;   // bố thí tối đa 20.000đ/lần
+const DONATE_TAX = 0.02;    // người nhận trích 2% cho quỹ
 
 // ══════════════════════════════════════════════
 //  HELPERS
@@ -1611,6 +1655,28 @@ function challengeNet(uid) {
   return net;
 }
 function joinedAnyDuel(uid) { return duelsList().some(d => (d.status === 'done' || d.status === 'active') && (d.from === uid || d.to === uid)); }
+
+// ── BỐ THÍ (donate cho kẻ thất bại) ──
+function donationsList() { return Object.values(donations); }
+function isBegging(uid) { return !!begging[uid]; }
+function totalGiven(uid) { return donationsList().filter(d => d.from === uid).reduce((s,d) => s + (d.amount||0), 0); }
+// Người nhận được +98% (trích 2% quỹ); người cho mất full
+function donationNet(uid) {
+  let net = 0;
+  donationsList().forEach(d => {
+    if (d.from === uid) net -= (d.amount||0);
+    if (d.to === uid) net += Math.round((d.amount||0) * (1 - DONATE_TAX));
+  });
+  return net;
+}
+function hasDonation(uid) { return donationsList().some(d => d.from === uid || d.to === uid); }
+// "Trái tim ấm áp" = người bố thí nhiều nhất (tổng cho cao nhất); hoà thì nhiều người cùng nhận
+function warmHeartIds() {
+  let best = 0; const map = {};
+  Object.entries(users).forEach(([uid, u]) => { if (!u.approved || u.rejected) return; const g = totalGiven(uid); map[uid] = g; if (g > best) best = g; });
+  if (best <= 0) return [];
+  return Object.keys(map).filter(uid => map[uid] === best);
+}
 // Danh sách cược vô địch của 1 người (tối đa 2 lần, riêng lẻ)
 const CHAMP_MAX_BETS = 2;
 function userBets(uid) {
@@ -1646,6 +1712,8 @@ function initFirebase() {
     db.ref(`${DB}/luckyJackpot`).on('value', s => { luckyJackpot = s.val() || null; onDataUpdate(); });
     db.ref(`${DB}/presence`).on('value', s => { presence = s.val() || {}; onDataUpdate(); });
     db.ref(`${DB}/duels`).on('value', s => { duels = s.val() || {}; onDataUpdate(); });
+    db.ref(`${DB}/begging`).on('value', s => { begging = s.val() || {}; onDataUpdate(); });
+    db.ref(`${DB}/donations`).on('value', s => { donations = s.val() || {}; onDataUpdate(); });
   } catch(e) { showToast('⚠️ Lỗi kết nối Firebase'); }
 }
 function onDataUpdate() {
@@ -2312,6 +2380,7 @@ function phaseStats(uid, mode) {
   const lucky = luckyBonusOf(uid);
   const jackpot = jackpotNet(uid);
   const duel = challengeNet(uid);
+  const donate = donationNet(uid);
   let champ = 0;
   const bets = userBets(uid);
   if (bets.length) {
@@ -2321,8 +2390,8 @@ function phaseStats(uid, mode) {
       if (champion && b.team === champion) champ += b.stake * b.odds;
     });
   }
-  const pts = koPts - spent + combo + lucky + champ + jackpot + duel;
-  return {pts, correct, wrong, spent, combo, lucky, champ, jackpot, duel, hasBet: bets.length > 0, hasJp: joinedAnyJackpot(uid), hasDuel: joinedAnyDuel(uid)};
+  const pts = koPts - spent + combo + lucky + champ + jackpot + duel + donate;
+  return {pts, correct, wrong, spent, combo, lucky, champ, jackpot, duel, donate, hasBet: bets.length > 0, hasJp: joinedAnyJackpot(uid), hasDuel: joinedAnyDuel(uid), hasDonation: hasDonation(uid)};
 }
 function renderLeaderboard() {
   const approved = Object.entries(users).filter(([,u]) => u.approved);
@@ -2330,7 +2399,7 @@ function renderLeaderboard() {
 
   if (lbMode === 'ko') {
     // Vào bảng knockout nếu đã tham gia bất kỳ hoạt động nào
-    rows = rows.filter(r => isUserActive(r.uid) || r.spent > 0 || r.lucky > 0 || r.hasBet || r.hasJp || r.hasDuel);
+    rows = rows.filter(r => isUserActive(r.uid) || r.spent > 0 || r.lucky > 0 || r.hasBet || r.hasJp || r.hasDuel || r.hasDonation);
   } else {
     // Vòng bảng: chỉ ai có dữ liệu điểm vòng bảng
     rows = rows.filter(r => (r.correct + r.wrong) > 0);
@@ -2343,6 +2412,9 @@ function renderLeaderboard() {
   const kings = lbMode === 'ko' ? streakKingIds() : [];
   const maxWrong = rows.reduce((mx, r) => Math.max(mx, r.wrong), 0);
   const losers = (lbMode === 'ko' && maxWrong >= 2) ? rows.filter(r => r.wrong === maxWrong).map(r => r.uid) : [];
+  const warmHearts = lbMode === 'ko' ? warmHeartIds() : [];
+  const meId = currentUser?.id;
+  const myPositive = (lbMode === 'ko' && meId) ? (phaseStats(meId, 'ko').pts > 0) : false;
 
   const total = rows.reduce((s, p) => s + p.pts, 0);
   const totalEl = document.getElementById('total-pts');
@@ -2354,10 +2426,11 @@ function renderLeaderboard() {
     `${rows.length} người tham gia · ${rows.filter(p=>p.pts<0).length} mạnh thường quân`;
 
   const crowns = ['👑','🥈','🥉'];
-  document.getElementById('lb-list').innerHTML = rows.length === 0
+  const note = lbMode === 'ko' ? `<div class="lb-note">💝 Hãy bố thí nhiều để nhận danh hiệu <b>Trái tim ấm áp</b>!</div>` : '';
+  const listHtml = rows.length === 0
     ? `<p class="empty-msg">${lbMode === 'ko' ? 'Chưa ai dự đoán vòng loại trực tiếp' : 'Chưa có dữ liệu vòng bảng'}</p>`
     : rows.map((p, i) => {
-      const isMe = p.uid === currentUser?.id;
+      const isMe = p.uid === meId;
       const ptsClass = p.pts >= 0 ? 'pos' : 'neg';
       const spentTxt = (lbMode === 'ko' && p.spent > 0) ? ` · 🛒 ${p.spent.toLocaleString('vi-VN')}đ` : '';
       const comboTxt = (lbMode === 'ko' && p.combo > 0) ? ` · 🔥+${p.combo.toLocaleString('vi-VN')}` : '';
@@ -2365,17 +2438,61 @@ function renderLeaderboard() {
       const champTxt = (lbMode === 'ko' && p.champ) ? ` · 👑${p.champ>0?'+':''}${p.champ.toLocaleString('vi-VN')}` : '';
       const jpTxt = (lbMode === 'ko' && p.jackpot) ? ` · 💰${p.jackpot>0?'+':''}${p.jackpot.toLocaleString('vi-VN')}` : '';
       const duelTxt = (lbMode === 'ko' && p.duel) ? ` · ⚔️${p.duel>0?'+':''}${p.duel.toLocaleString('vi-VN')}` : '';
+      const donTxt = (lbMode === 'ko' && p.donate) ? ` · 💝${p.donate>0?'+':''}${p.donate.toLocaleString('vi-VN')}` : '';
+
+      // Khu vực bố thí
+      let begHtml = '';
+      if (lbMode === 'ko') {
+        if (isBegging(p.uid)) {
+          begHtml = `<div class="beg-box">🙏 <b>${users[p.uid]?.name||''}</b> đang xin bố thí — "Xin hãy bố thí cho kẻ khốn khổ này"
+            ${(p.uid !== meId && myPositive) ? `<button class="beg-btn" onclick="openDonate('${p.uid}')">💝 Bố thí</button>` : ''}</div>`;
+        } else if (p.uid === meId && losers.includes(meId)) {
+          begHtml = `<div class="beg-box" style="text-align:center"><button class="beg-btn" onclick="startBegging()">😢 Xin donate</button></div>`;
+        }
+      }
+
       return `
         <div class="lb-card">
           <div class="lb-rank r${i+1}">${i < 3 ? crowns[i] : i+1}</div>
           <div style="flex:1">
-            <div class="lb-name">${starWrap(p.uid, p.name)}${isMe?'<span class="me-badge">Bạn</span>':''}${isTopSpender(p.uid)?'<span class="spender-badge">🔥 Thánh nướng tiền</span>':''}${p.uid===sponsorUid?'<span class="title-sponsor">🥇 Nhà tài trợ vàng</span>':''}${p.uid===tycoonUid?'<span class="title-tycoon">💰 Đại gia phố núi</span>':''}${kings.includes(p.uid)?'<span class="title-streak">⚡ Streak King</span>':''}${losers.includes(p.uid)?'<span class="title-loser">💩 Kẻ thất bại</span>':''}</div>
-            <div class="lb-sub">${p.correct} đúng · ${p.wrong} sai${spentTxt}${comboTxt}${luckyTxt}${champTxt}${jpTxt}${duelTxt}</div>
+            <div class="lb-name">${starWrap(p.uid, p.name)}${isMe?'<span class="me-badge">Bạn</span>':''}${isTopSpender(p.uid)?'<span class="spender-badge">🔥 Thánh nướng tiền</span>':''}${p.uid===sponsorUid?'<span class="title-sponsor">🥇 Nhà tài trợ vàng</span>':''}${p.uid===tycoonUid?'<span class="title-tycoon">💰 Đại gia phố núi</span>':''}${kings.includes(p.uid)?'<span class="title-streak">⚡ Streak King</span>':''}${losers.includes(p.uid)?'<span class="title-loser">💩 Kẻ thất bại</span>':''}${warmHearts.includes(p.uid)?'<span class="title-warm">💝 Trái tim ấm áp</span>':''}</div>
+            <div class="lb-sub">${p.correct} đúng · ${p.wrong} sai${spentTxt}${comboTxt}${luckyTxt}${champTxt}${jpTxt}${duelTxt}${donTxt}</div>
           </div>
           <div class="lb-pts ${ptsClass}">${fmtPts(p.pts)}đ</div>
-        </div>
-      `;
+        </div>${begHtml}`;
     }).join('');
+  document.getElementById('lb-list').innerHTML = note + listHtml;
+}
+// ── Bố thí cho kẻ thất bại ──
+let donateToUid = null;
+async function startBegging() {
+  if (!currentUser) return;
+  await fbSet(`${DB}/begging/${currentUser.id}`, true);
+  showToast('🙏 Đã bật xin bố thí — chờ lòng hảo tâm nhé');
+  renderLeaderboard();
+}
+function openDonate(uid) {
+  if (!currentUser) return;
+  if (phaseStats(currentUser.id, 'ko').pts <= 0) { showToast('Chỉ người đang dương tiền mới bố thí được'); return; }
+  donateToUid = uid;
+  document.getElementById('donate-sub').textContent = `Bố thí cho ${users[uid]?.name||'?'} (tối đa ${DONATE_MAX.toLocaleString('vi-VN')}đ)`;
+  document.getElementById('donate-amount').value = 5000;
+  document.getElementById('donate-modal-overlay').classList.add('open');
+}
+function closeDonate(e) {
+  if (e && e.type === 'click' && e.target !== document.getElementById('donate-modal-overlay')) return;
+  document.getElementById('donate-modal-overlay').classList.remove('open');
+}
+async function confirmDonate() {
+  if (!currentUser || !donateToUid) return;
+  if (phaseStats(currentUser.id, 'ko').pts <= 0) { showToast('Bạn không còn dương tiền'); return; }
+  const amt = parseInt(document.getElementById('donate-amount').value) || 0;
+  if (amt <= 0) { showToast('Nhập số tiền bố thí'); return; }
+  if (amt > DONATE_MAX) { showToast(`Bố thí tối đa ${DONATE_MAX.toLocaleString('vi-VN')}đ`); return; }
+  await db.ref(`${DB}/donations`).push({from: currentUser.id, to: donateToUid, amount: amt, ts: Date.now()});
+  document.getElementById('donate-modal-overlay').classList.remove('open');
+  showToast(`💝 Đã bố thí ${amt.toLocaleString('vi-VN')}đ — thật ấm áp!`);
+  renderLeaderboard();
 }
 
 // ══════════════════════════════════════════════
