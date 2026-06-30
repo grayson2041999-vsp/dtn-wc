@@ -1142,6 +1142,7 @@ let jackpots    = {}; // {matchId:{uid:true}} – ai đã tham gia
 let jpSpinner   = {}; // {matchId: uid} – người được admin chọn để quay
 let jpWinner    = {}; // {matchId: uid} – người thắng sau khi quay
 let jpEnabled   = {}; // {matchId: false} – trận bị admin TẮT jackpot (mặc định mở)
+let luckyJackpot = null; // {name, amount, ts} – người trúng 100.000đ vòng quay gần nhất
 
 // ══════════════════════════════════════════════
 //  HELPERS
@@ -1432,6 +1433,7 @@ function initFirebase() {
     db.ref(`${DB}/jpSpinner`).on('value', s => { jpSpinner = s.val() || {}; onDataUpdate(); });
     db.ref(`${DB}/jpWinner`).on('value', s => { jpWinner = s.val() || {}; onDataUpdate(); });
     db.ref(`${DB}/jpEnabled`).on('value', s => { jpEnabled = s.val() || {}; onDataUpdate(); });
+    db.ref(`${DB}/luckyJackpot`).on('value', s => { luckyJackpot = s.val() || null; onDataUpdate(); });
   } catch(e) { showToast('⚠️ Lỗi kết nối Firebase'); }
 }
 function onDataUpdate() {
@@ -1476,6 +1478,11 @@ function renderWinnerBanner() {
       const rt = resolved[m.id] || {};
       msgs.push(`💰 <b>${users[wUid]?.name || '?'}</b> trúng hũ Jackpot trận ${rt.team1||''} vs ${rt.team2||''} (+${jpShare(m.id).toLocaleString('vi-VN')}đ)! 🤑`);
     });
+
+  // (3) Người vừa TRÚNG 100.000đ ở vòng quay Lì xì (trong 24 giờ) — ưu tiên hiện đầu
+  if (luckyJackpot && luckyJackpot.name && (Date.now() - (luckyJackpot.ts || 0) < 24 * 3600 * 1000)) {
+    msgs.unshift(`💎🔥 <b>${luckyJackpot.name}</b> vừa TRÚNG ${luckyJackpot.amount.toLocaleString('vi-VN')}đ ở vòng quay Lì xì! Quá đỉnh! 🤑`);
+  }
 
   if (!msgs.length) { banner.classList.remove('show'); return; }
   banner.innerHTML = `<div class="wb-track">${msgs.join('　•　')}</div>`;
@@ -2364,9 +2371,11 @@ function closeWheel(e) {
   document.getElementById('wheel-overlay').classList.remove('open');
 }
 function pickOutcome() {
-  if (Math.random() * 100 < 1) return 7;       // +100.000đ: 1%
-  const others = [0,1,2,3,4,5,6];              // 7 ô còn lại đều nhau
-  return others[Math.floor(Math.random() * others.length)];
+  // Xác suất theo thứ tự WHEEL: 🍀34 · +5k 22 · quay lại 11 · +20k 6 · skin 5 · +7k 12 · voucher 9 · +100k 1
+  const weights = [34, 22, 11, 6, 5, 12, 9, 1];
+  let r = Math.random() * 100, acc = 0;
+  for (let i = 0; i < weights.length; i++) { acc += weights[i]; if (r < acc) return i; }
+  return 0;
 }
 // Quay thật: trừ tiền/lượt, trúng nhận quà
 async function spinWheel() {
@@ -2397,6 +2406,9 @@ async function applyOutcome(idx) {
   if (w.type === 'money') {
     await fbSet(`${DB}/shop/${me}/luckyBonus`, luckyBonusOf(me) + w.amount);
     msg = `🎉 Trúng +${w.amount.toLocaleString('vi-VN')}đ!`;
+    if (w.amount >= 100000) { // jackpot → báo cho cả nhóm qua banner
+      await fbSet(`${DB}/luckyJackpot`, {name: users[me]?.name || currentUser.name, amount: w.amount, ts: Date.now()});
+    }
   } else if (w.type === 'respin') {
     await fbSet(`${DB}/shop/${me}/freeSpins`, freeSpinsOf(me) + 1);
     msg = '🔄 Được thêm 1 lượt quay!';
