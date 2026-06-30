@@ -1326,7 +1326,7 @@ function renderWinnerBanner() {
   const actual = results[chosen.id];
   const rt = resolved[chosen.id] || {};
   const names = winners.join(', ');
-  const msg = `🎉 Chúc mừng <b>${names}</b> đã đoán trúng tỷ số ${actual} trận ${rt.team1||''} vs ${rt.team2||''}! 🏆 Quá đỉnh, ẵm +50.000đ, tiếp tục phát huy nhé!`;
+  const msg = `🎉 Chúc mừng <b>${names}</b> đã đoán trúng tỷ số ${actual} trận ${rt.team1||''} vs ${rt.team2||''}! 🏆 Mang tiền về cho mẹ nhé!`;
   banner.innerHTML = `<div class="wb-track">${msg}</div>`;
   banner.classList.add('show');
 }
@@ -2203,6 +2203,7 @@ function renderChamp() {
   const openSlot = champOpenSlot(me);
   const canMore = openSlot !== null;
   const alive = aliveChampTeams();
+  const elim = eliminatedTeams();
   const champion = getChampion();
   const dl1 = fmtKickoffVN(champDeadline1().toISOString());
   const dl2 = fmtKickoffVN(champDeadline2().toISOString());
@@ -2226,11 +2227,11 @@ function renderChamp() {
     if (myBets.length) {
       html += `<div class="champ-hero">
         <div style="font-size:13px;color:var(--text2)">Dự đoán nhà vô địch của bạn (${myBets.length}/${CHAMP_MAX_BETS})</div>
-        ${myBets.map(b => `<div style="margin-top:8px">
+        ${myBets.map(b => { const dead = elim.has(b.team); return `<div style="margin-top:8px${dead?';opacity:.4;filter:grayscale(1)':''}">
           <span style="font-size:24px">${champFlag(b.team)}</span>
-          <b style="font-size:17px"> ${b.team}</b>
+          <b style="font-size:17px${dead?';text-decoration:line-through':''}"> ${b.team}</b>${dead?' <span style="color:var(--red);font-size:11px;font-weight:800">ĐÃ BỊ LOẠI</span>':''}
           <div style="font-size:12px;color:var(--gold);font-weight:800">Cược ${b.stake.toLocaleString('vi-VN')}đ · ${b.odds}x → thắng nhận ${(b.stake*b.odds).toLocaleString('vi-VN')}đ</div>
-        </div>`).join('')}
+        </div>`; }).join('')}
       </div>`;
     }
     // Khu vực cược theo giai đoạn
@@ -2264,7 +2265,7 @@ function renderChamp() {
   }
 
   // Danh sách đội được chọn + ai chọn cùng (chỉ khi đã cược hoặc đã hết hạn)
-  if (myBets.length || !open) {
+  if (myBets.length || ph === 0) {
     const byTeam = {};
     Object.entries(champBets).forEach(([uid, c]) => {
       if (!users[uid]?.approved) return;
@@ -2274,14 +2275,16 @@ function renderChamp() {
     html += `<p class="section-title" style="margin-top:20px">🗳️ Mọi người chọn ai</p>`;
     if (!teams.length) html += `<p class="empty-msg">Chưa có ai dự đoán</p>`;
     else html += teams.map(t => {
+      const dead = elim.has(t);
       const names = byTeam[t].map(uid => {
         const me2 = uid === me;
         return `<span class="predictor-chip ${me2?'me':'done'}">${starWrap(uid, users[uid].name)}</span>`;
       }).join('');
-      return `<div class="card">
+      return `<div class="card" style="${dead?'opacity:.4;filter:grayscale(1)':''}">
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
           <span style="font-size:22px">${champFlag(t)}</span>
-          <b>${t}</b> <span style="color:var(--text2);font-size:12px">(${champOdds(t)}x)</span>
+          <b style="${dead?'text-decoration:line-through':''}">${t}</b> <span style="color:var(--text2);font-size:12px">(${champOdds(t)}x)</span>
+          ${dead?'<span style="color:var(--red);font-size:11px;font-weight:800">ĐÃ BỊ LOẠI</span>':''}
           <span style="margin-left:auto;color:var(--accent);font-weight:800">${byTeam[t].length} người</span>
         </div>
         <div style="display:flex;flex-wrap:wrap;gap:6px">${names}</div>
