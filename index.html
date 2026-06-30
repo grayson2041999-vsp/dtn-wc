@@ -1,0 +1,2968 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>⚽ Đoàn thanh niên vui Worldcup</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+    :root {
+      --bg: #071a0f;
+      --card: #0d2818;
+      --card2: #163520;
+      --accent: #00e676;
+      --accent2: #ff6b35;
+      --green: #00e676;
+      --red: #ff4444;
+      --text: #f0fff4;
+      --text2: #7aab8a;
+      --border: #1a4028;
+      --r: 14px;
+      --gold: #ffd700;
+    }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      min-height: 100dvh;
+      max-width: 480px;
+      margin: 0 auto;
+      padding-bottom: 80px;
+      overflow-x: hidden;
+    }
+
+    /* ── HEADER ── */
+    #app-header {
+      position: sticky; top: 0; z-index: 100;
+      background: linear-gradient(135deg, #041208, #0a2010);
+      border-bottom: 1px solid var(--border);
+      padding: 12px 16px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .logo { font-size: 16px; font-weight: 900; letter-spacing: -0.3px; line-height: 1.2; }
+    .logo span { color: var(--accent); }
+    .logo small { display: block; font-size: 10px; font-weight: 600; color: var(--text2); letter-spacing: 0.5px; }
+    #user-badge {
+      background: var(--card2); border: 1px solid var(--border);
+      border-radius: 20px; padding: 5px 14px;
+      font-size: 13px; font-weight: 700; color: var(--accent);
+      cursor: pointer; max-width: 160px;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+
+    /* ── WINNER BANNER (chạy ngang) ── */
+    #winner-banner {
+      display: none;
+      position: sticky; top: 0; z-index: 99;
+      background: linear-gradient(90deg, #163520, #0d2818);
+      border-bottom: 1px solid var(--gold);
+      overflow: hidden; white-space: nowrap; padding: 7px 0;
+    }
+    #winner-banner.show { display: block; }
+    #winner-banner .wb-track {
+      display: inline-block; white-space: nowrap; padding-left: 100%;
+      font-size: 13px; font-weight: 700; color: var(--gold);
+      animation: wb-scroll 20s linear infinite;
+    }
+    #winner-banner .wb-track b { color: var(--text); }
+    #winner-banner:hover .wb-track { animation-play-state: paused; }
+    @keyframes wb-scroll {
+      from { transform: translateX(0); }
+      to   { transform: translateX(-100%); }
+    }
+
+    /* ── VIEWS ── */
+    .view { display: none; padding: 16px; }
+    .view.active { display: block; }
+
+    /* ── AUTH ── */
+    .auth-hero {
+      text-align: center; padding: 28px 0 20px; position: relative;
+    }
+    .auth-hero .ball { font-size: 52px; display: block; margin-bottom: 10px; }
+    .auth-hero h1 { font-size: 20px; font-weight: 900; line-height: 1.3; }
+    .auth-hero p { font-size: 13px; color: var(--text2); margin-top: 6px; }
+    #admin-entry-btn {
+      position: absolute; top: 28px; right: 0;
+      background: none; border: 1px solid var(--border);
+      border-radius: 8px; color: var(--text2);
+      font-size: 11px; font-weight: 700; padding: 5px 10px; cursor: pointer;
+    }
+
+    /* Player picker grid */
+    .player-grid {
+      display: grid; grid-template-columns: 1fr 1fr;
+      gap: 10px; margin-top: 8px;
+    }
+    .player-tile {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: var(--r); padding: 18px 12px;
+      text-align: center; cursor: pointer;
+      transition: border-color .15s, background .15s;
+      position: relative;
+    }
+    .player-tile:active { background: var(--card2); }
+    .player-tile.approved { border-color: var(--border); }
+    .player-tile.approved:hover { border-color: var(--accent); }
+    .player-tile.pending { opacity: .55; cursor: default; }
+    .player-tile .avatar {
+      width: 48px; height: 48px; border-radius: 50%;
+      background: linear-gradient(135deg, #163520, #1e4a2a);
+      border: 2px solid var(--border);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 20px; font-weight: 900; margin: 0 auto 10px;
+      color: var(--accent);
+    }
+    .player-tile.pending .avatar { border-color: var(--text2); color: var(--text2); }
+    .player-tile .tile-name { font-size: 13px; font-weight: 800; line-height: 1.3; }
+    .player-tile .tile-status {
+      font-size: 10px; font-weight: 700; margin-top: 5px;
+      padding: 2px 8px; border-radius: 8px; display: inline-block;
+    }
+    .tile-status.ok  { background: rgba(0,230,118,.12); color: var(--green); }
+    .tile-status.wait{ background: rgba(255,107,53,.12); color: var(--accent2); }
+    .register-tile {
+      background: none; border: 2px dashed var(--border);
+      border-radius: var(--r); padding: 18px 12px;
+      text-align: center; cursor: pointer;
+      transition: border-color .15s;
+    }
+    .register-tile:hover { border-color: var(--accent); }
+    .register-tile .plus { font-size: 28px; color: var(--text2); margin-bottom: 8px; }
+    .register-tile .tile-name { font-size: 13px; font-weight: 800; color: var(--text2); }
+
+    /* Auth form (register) */
+    .auth-form { display: flex; flex-direction: column; gap: 12px; }
+    .auth-form input {
+      width: 100%; padding: 15px 16px;
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: var(--r); color: var(--text); font-size: 16px;
+    }
+    .auth-form input:focus { outline: none; border-color: var(--accent); }
+    .btn-primary {
+      width: 100%; padding: 16px;
+      background: linear-gradient(135deg, var(--accent), #00b248);
+      border: none; border-radius: var(--r);
+      color: #000; font-size: 16px; font-weight: 900;
+      cursor: pointer; transition: opacity .15s;
+    }
+    .btn-primary:active { opacity: .85; }
+    .btn-secondary {
+      width: 100%; padding: 14px;
+      background: none; border: 1px solid var(--border);
+      border-radius: var(--r); color: var(--text2);
+      font-size: 14px; cursor: pointer; margin-top: 4px;
+    }
+
+    /* Password modal */
+    #pwd-modal-overlay {
+      display: none; position: fixed; inset: 0; z-index: 300;
+      background: rgba(0,0,0,.75); backdrop-filter: blur(4px);
+      align-items: flex-end; justify-content: center;
+    }
+    #pwd-modal-overlay.open { display: flex; }
+    #pwd-modal-box {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 24px 24px 0 0; padding: 28px 20px 40px;
+      width: 100%; max-width: 480px;
+    }
+    #pwd-modal-box .pm-avatar {
+      width: 64px; height: 64px; border-radius: 50%;
+      background: linear-gradient(135deg, #163520, #1e4a2a);
+      border: 2px solid var(--accent);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 26px; font-weight: 900; color: var(--accent);
+      margin: 0 auto 12px;
+    }
+    #pwd-modal-box h3 { text-align: center; font-size: 18px; font-weight: 900; margin-bottom: 4px; }
+    #pwd-modal-box .pm-sub { text-align: center; font-size: 12px; color: var(--text2); margin-bottom: 20px; }
+    #pwd-modal-input {
+      width: 100%; padding: 16px; font-size: 18px; letter-spacing: 3px;
+      background: var(--card2); border: 1px solid var(--border);
+      border-radius: var(--r); color: var(--text); text-align: center;
+      margin-bottom: 12px;
+    }
+    #pwd-modal-input:focus { outline: none; border-color: var(--accent); }
+    #pwd-error { color: var(--red); font-size: 13px; font-weight: 700; text-align: center; margin-bottom: 10px; min-height: 20px; }
+
+    /* ── SECTION TITLE ── */
+    .section-title {
+      font-size: 11px; font-weight: 700; letter-spacing: 1.5px;
+      text-transform: uppercase; color: var(--text2);
+      margin: 20px 0 10px;
+    }
+
+    /* ── CARDS ── */
+    .card {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: var(--r); padding: 14px; margin-bottom: 8px;
+    }
+
+    /* ── FILTER BAR ── */
+    #filter-bar {
+      display: flex; gap: 8px; margin-bottom: 12px; overflow-x: auto;
+      scrollbar-width: none; padding-bottom: 4px;
+    }
+    #filter-bar::-webkit-scrollbar { display: none; }
+    .filter-chip {
+      flex-shrink: 0; padding: 6px 14px;
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 20px; font-size: 12px; font-weight: 700;
+      cursor: pointer; color: var(--text2); transition: all .15s;
+    }
+    .filter-chip.active { background: var(--accent); border-color: var(--accent); color: #000; }
+
+    /* ── MATCH CARD ── */
+    .match-card {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: var(--r); padding: 14px; margin-bottom: 8px;
+      position: relative;
+    }
+    .match-card.has-result {
+      background: #060f09;
+      border-color: #111f16;
+      opacity: 0.7;
+    }
+    .match-card:not(.locked) { cursor: pointer; }
+    .match-card:not(.locked):active { border-color: var(--accent2); }
+    .group-badge {
+      position: absolute; top: 10px; right: 12px;
+      font-size: 10px; font-weight: 800; letter-spacing: 1px;
+      color: var(--text2); background: var(--card2);
+      padding: 2px 7px; border-radius: 10px;
+    }
+    .match-teams {
+      display: flex; align-items: center; gap: 10px; margin-bottom: 10px;
+    }
+    .team-name { font-size: 14px; font-weight: 800; flex: 1; }
+    .team-name.left { text-align: right; }
+    .team-name.right { text-align: left; }
+    .team-name.tbd { color: var(--text2); font-weight: 700; font-style: italic; font-size: 12px; }
+    .vs { font-size: 11px; font-weight: 800; color: var(--text2); min-width: 22px; text-align: center; }
+    .match-meta { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 6px; }
+    .match-status { font-size: 11px; font-weight: 600; padding: 3px 9px; border-radius: 10px; }
+    .match-status.open { background: rgba(0,230,118,.12); color: var(--green); }
+    .match-status.locked { background: rgba(255,68,68,.12); color: var(--red); }
+    .match-status.done { background: rgba(255,215,0,.12); color: var(--gold); }
+    .my-pred { font-size: 12px; font-weight: 700; color: var(--text2); }
+    .my-pred .sc { color: var(--text); }
+    .my-pred .ok {
+      color: var(--green); font-size: 16px; font-weight: 900;
+      background: rgba(0,230,118,.12); border-radius: 8px;
+      padding: 2px 8px; letter-spacing: -0.3px;
+    }
+    .my-pred .no { color: var(--red); font-size: 11px; font-weight: 600; opacity: .8; }
+    .pred-count {
+      font-size: 11px; font-weight: 700; color: var(--text2);
+      background: var(--card2); border: 1px solid var(--border);
+      border-radius: 10px; padding: 3px 8px; cursor: pointer;
+    }
+    .predictor-list {
+      margin-top: 10px; flex-wrap: wrap; gap: 6px;
+      border-top: 1px solid var(--border); padding-top: 10px;
+    }
+    .predictor-chip {
+      font-size: 11px; font-weight: 600; padding: 3px 9px;
+      background: var(--card2); border-radius: 8px; color: var(--text2);
+    }
+    .predictor-chip.me      { background: rgba(0,230,118,.15); color: var(--accent); }
+    .predictor-chip.done    { background: rgba(0,230,118,.08); color: var(--green); }
+    .predictor-chip.missing { background: rgba(255,68,68,.12); color: var(--red); }
+    .date-label { font-size: 11px; font-weight: 700; letter-spacing: 1px; color: var(--accent); padding: 12px 0 6px; text-transform: uppercase; }
+
+    /* ── PREDICT MODAL ── */
+    #modal-overlay {
+      display: none; position: fixed; inset: 0; z-index: 200;
+      background: rgba(0,0,0,.75); backdrop-filter: blur(4px);
+      align-items: flex-end; justify-content: center;
+    }
+    #modal-overlay.open { display: flex; }
+    #modal-box {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 24px 24px 0 0; padding: 24px 20px 40px;
+      width: 100%; max-width: 480px;
+    }
+    #modal-box h3 { font-size: 17px; font-weight: 900; margin-bottom: 4px; }
+    #modal-box .modal-sub { font-size: 12px; color: var(--text2); margin-bottom: 20px; }
+    .score-inputs { display: flex; align-items: center; justify-content: center; gap: 12px; margin-bottom: 20px; }
+    .score-inputs input {
+      width: 72px; height: 72px;
+      background: var(--card2); border: 2px solid var(--border);
+      border-radius: var(--r); color: var(--text);
+      font-size: 32px; font-weight: 900; text-align: center;
+      -moz-appearance: textfield;
+    }
+    .score-inputs input::-webkit-outer-spin-button,
+    .score-inputs input::-webkit-inner-spin-button { -webkit-appearance: none; }
+    .score-inputs input:focus { outline: none; border-color: var(--accent); }
+    .score-sep { font-size: 28px; font-weight: 900; color: var(--text2); }
+    .ko-note { font-size: 11px; color: var(--gold); text-align: center; margin-bottom: 14px; }
+
+    /* ── LEADERBOARD ── */
+    .total-box {
+      background: linear-gradient(135deg, #0d2818, #163520);
+      border: 2px solid var(--accent); border-radius: var(--r);
+      padding: 16px; margin-bottom: 16px; text-align: center;
+    }
+    .total-box .lbl { font-size: 11px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: var(--text2); margin-bottom: 6px; }
+    .total-box .val { font-size: 28px; font-weight: 900; }
+    .total-box .val.pos { color: var(--green); }
+    .total-box .val.neg { color: var(--red); }
+    .lb-card {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: var(--r); padding: 14px 16px;
+      display: flex; align-items: center; gap: 14px; margin-bottom: 8px;
+    }
+    .lb-rank { font-size: 18px; font-weight: 900; min-width: 28px; color: var(--text2); }
+    .lb-rank.r1 { color: var(--gold); }
+    .lb-rank.r2 { color: #C0C0C0; }
+    .lb-rank.r3 { color: #CD7F32; }
+    .lb-name { font-size: 15px; font-weight: 800; flex: 1; }
+    .lb-sub { font-size: 11px; color: var(--text2); margin-top: 2px; }
+    .lb-pts { font-size: 17px; font-weight: 900; white-space: nowrap; }
+    .lb-pts.pos { color: var(--green); }
+    .lb-pts.neg { color: var(--red); }
+    .me-badge { font-size: 10px; background: var(--accent); color: #000; border-radius: 6px; padding: 1px 5px; font-weight: 800; margin-left: 5px; }
+
+    /* ── ADMIN ── */
+    #admin-pwd-input, #admin-match-select {
+      width: 100%; padding: 14px; margin-bottom: 12px;
+      background: var(--card2); border: 1px solid var(--border);
+      border-radius: var(--r); color: var(--text); font-size: 15px;
+    }
+    #admin-match-select option { background: var(--card2); }
+    .btn-danger {
+      background: var(--red); border: none; border-radius: 10px;
+      color: #fff; font-size: 12px; font-weight: 700; padding: 6px 12px; cursor: pointer;
+    }
+    .btn-approve {
+      background: var(--green); border: none; border-radius: 10px;
+      color: #000; font-size: 12px; font-weight: 700; padding: 6px 12px; cursor: pointer;
+    }
+    .admin-user-row {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: var(--r); padding: 12px 14px;
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 8px;
+    }
+    .admin-result-item {
+      background: var(--card2); border-radius: 10px; padding: 10px 14px;
+      margin-bottom: 6px; display: flex; justify-content: space-between; align-items: center;
+      font-size: 13px;
+    }
+    .admin-score-row {
+      display: flex; align-items: center; gap: 10px; margin-bottom: 12px;
+    }
+    .admin-score-row input {
+      width: 60px; height: 52px; text-align: center;
+      background: var(--card2); border: 1px solid var(--border);
+      border-radius: var(--r); color: var(--text); font-size: 22px; font-weight: 800;
+      -moz-appearance: textfield;
+    }
+    .admin-score-row input::-webkit-outer-spin-button,
+    .admin-score-row input::-webkit-inner-spin-button { -webkit-appearance: none; }
+    /* Bộ chọn đội đi tiếp khi hoà */
+    #admin-advance-wrap {
+      background: rgba(255,107,53,.08); border: 1px solid var(--accent2);
+      border-radius: var(--r); padding: 12px 14px; margin-bottom: 12px;
+    }
+    #admin-advance-wrap .adv-title { font-size: 12px; color: var(--accent2); font-weight: 800; margin-bottom: 10px; }
+    #admin-advance-wrap .adv-opts { display: flex; gap: 8px; }
+    #admin-advance-wrap label {
+      flex: 1; display: flex; align-items: center; gap: 8px;
+      background: var(--card2); border: 1px solid var(--border);
+      border-radius: 10px; padding: 10px 12px; font-size: 13px; font-weight: 700; cursor: pointer;
+    }
+    #admin-advance-wrap input[type=radio] { width: 18px; height: 18px; accent-color: var(--accent); }
+
+    /* ── BOTTOM NAV ── */
+    #bottom-nav {
+      display: none; position: fixed; bottom: 0; left: 50%; transform: translateX(-50%);
+      width: 100%; max-width: 480px;
+      background: #041208; border-top: 1px solid var(--border);
+    }
+    #bottom-nav button {
+      flex: 1; padding: 12px 8px 14px;
+      background: none; border: none; color: var(--text2);
+      font-size: 10px; font-weight: 700; cursor: pointer;
+      display: flex; flex-direction: column; align-items: center; gap: 3px;
+      transition: color .15s;
+    }
+    #bottom-nav.show { display: flex; }
+    #bottom-nav button .icon { font-size: 20px; }
+    #bottom-nav button.active { color: var(--accent); }
+
+    /* Nổi bật nút Vật phẩm */
+    #nav-shop { color: var(--gold); font-weight: 900; position: relative; }
+    #nav-shop .icon { font-size: 26px; filter: brightness(0) invert(1) drop-shadow(0 0 7px rgba(255,255,255,.85)); animation: shopPulse 1.6s ease-in-out infinite; }
+    #nav-shop.active { color: var(--gold); }
+    #nav-shop::after {
+      content: 'HOT'; position: absolute; top: 6px; left: 50%; margin-left: 6px;
+      background: var(--red); color: #fff; font-size: 8px; font-weight: 900;
+      padding: 1px 5px; border-radius: 7px; letter-spacing: .5px;
+    }
+    @keyframes shopPulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.18); } }
+    /* Làm mờ nút Admin */
+    #nav-admin { opacity: .35; }
+    #nav-admin.active { opacity: 1; }
+
+    /* ── MISC ── */
+    .toast {
+      position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%);
+      background: #1e3a28; color: #fff; padding: 10px 20px;
+      border-radius: 20px; font-size: 14px; font-weight: 600;
+      z-index: 999; opacity: 0; transition: opacity .3s;
+      white-space: nowrap; pointer-events: none;
+    }
+    .toast.show { opacity: 1; }
+    .empty-msg { text-align: center; color: var(--text2); padding: 40px 20px; font-size: 15px; }
+    .pts-fmt { font-size: 13px; font-weight: 800; }
+    .pts-fmt.pos { color: var(--green); }
+    .pts-fmt.neg { color: var(--red); }
+
+    /* ── NGÔI SAO: tên nổi bật ── */
+    .star-name {
+      background: linear-gradient(90deg, #ffd700, #fff6b0, #ffae00, #ffd700);
+      -webkit-background-clip: text; background-clip: text; color: transparent;
+      font-weight: 900; text-shadow: 0 0 10px rgba(255,215,0,.45);
+    }
+
+    /* ── SHOP / VẬT PHẨM ── */
+    .shop-balance {
+      background: linear-gradient(135deg, #0d2818, #163520);
+      border: 2px solid var(--gold); border-radius: var(--r);
+      padding: 14px 16px; margin-bottom: 16px; text-align: center;
+    }
+    .shop-balance .lbl { font-size: 11px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: var(--text2); margin-bottom: 4px; }
+    .shop-balance .val { font-size: 24px; font-weight: 900; }
+    .shop-item {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: var(--r); padding: 16px; margin-bottom: 12px;
+      display: flex; gap: 14px; align-items: center;
+    }
+    .shop-item .ico {
+      width: 52px; height: 52px; flex-shrink: 0; border-radius: 14px;
+      background: var(--card2); display: flex; align-items: center; justify-content: center;
+      font-size: 28px;
+    }
+    .shop-item .info { flex: 1; }
+    .shop-item .nm { font-size: 15px; font-weight: 800; }
+    .shop-item .ds { font-size: 12px; color: var(--text2); margin-top: 2px; line-height: 1.4; }
+    .shop-item .price { font-size: 12px; font-weight: 800; color: var(--gold); margin-top: 4px; }
+    .shop-buy {
+      flex-shrink: 0; padding: 10px 16px; border: none; border-radius: 12px;
+      background: linear-gradient(135deg, var(--accent), #00b248);
+      color: #000; font-size: 13px; font-weight: 900; cursor: pointer; white-space: nowrap;
+    }
+    .shop-buy.owned { background: var(--card2); color: var(--text2); cursor: default; }
+    .shop-buy:active { opacity: .85; }
+    .shop-item.on-sale { border-color: var(--red); box-shadow: 0 0 0 1px var(--red) inset; }
+    .sale-badge {
+      display: inline-block; background: var(--red); color: #fff;
+      font-size: 10px; font-weight: 900; padding: 1px 7px; border-radius: 8px;
+      vertical-align: middle; margin-left: 4px; letter-spacing: .3px;
+    }
+    .old-price { color: var(--text2); text-decoration: line-through; font-weight: 700; }
+
+    /* Tỷ số dự phòng (trái tim) trong modal */
+    #heart-section { margin-bottom: 16px; }
+    .heart-btn {
+      width: 100%; padding: 12px; border: 1px dashed var(--accent2);
+      background: rgba(255,107,53,.08); color: var(--accent2);
+      border-radius: var(--r); font-size: 13px; font-weight: 800; cursor: pointer;
+    }
+    .backup-label { font-size: 11px; font-weight: 700; color: var(--accent2); text-align: center; margin-bottom: 8px; letter-spacing: .5px; }
+    /* Phân bố tỷ số khi dùng kính lúp */
+    .score-dist { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 10px; }
+    .score-dist .sd {
+      font-size: 11px; font-weight: 800; padding: 3px 9px; border-radius: 8px;
+      background: rgba(255,215,0,.12); color: var(--gold);
+    }
+    .predictor-chip .pc-score { color: var(--text); font-weight: 800; margin-left: 4px; }
+
+    /* ── SKIN 12 CON GIÁP ── */
+    .skin-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .skin-card {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: var(--r); padding: 12px; text-align: center;
+    }
+    .skin-card.equipped { border-color: var(--gold); box-shadow: 0 0 0 1px var(--gold) inset; }
+    .skin-card .se { font-size: 30px; line-height: 1; }
+    .skin-card .sn { font-size: 12px; font-weight: 800; margin-top: 5px; }
+    .skin-card .sp { font-size: 11px; color: var(--gold); font-weight: 800; margin-top: 2px; }
+    .skin-card .sbtn {
+      margin-top: 9px; width: 100%; padding: 8px; border: none; border-radius: 10px;
+      font-size: 12px; font-weight: 800; cursor: pointer;
+      background: linear-gradient(135deg, var(--accent), #00b248); color: #000;
+    }
+    .skin-card .sbtn.owned    { background: var(--card2); color: var(--text); }
+    .skin-card .sbtn.equipped { background: var(--gold); color: #000; }
+
+    /* ── VÒNG QUAY LÌ XÌ ── */
+    #wheel-overlay {
+      display: none; position: fixed; inset: 0; z-index: 250;
+      background: rgba(0,0,0,.8); backdrop-filter: blur(4px);
+      align-items: center; justify-content: center;
+    }
+    #wheel-overlay.open { display: flex; }
+    #wheel-box {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 20px; padding: 22px 20px 26px; width: 92%; max-width: 360px; text-align: center;
+    }
+    #wheel-box h3 { font-size: 18px; font-weight: 900; margin-bottom: 2px; }
+    /* Lưới ô lì xì 3x3 (8 ô quà + ô giữa) */
+    #wheel-grid {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;
+      margin: 16px auto 10px; max-width: 300px;
+    }
+    .lx-cell {
+      background: var(--card2); border: 2px solid var(--border); border-radius: 12px;
+      padding: 10px 4px; display: flex; flex-direction: column; align-items: center; gap: 3px;
+      transition: transform .08s, box-shadow .08s, border-color .08s;
+    }
+    .lx-cell .e { font-size: 24px; line-height: 1; }
+    .lx-cell .l { font-size: 10px; font-weight: 800; color: var(--text2); text-align: center; line-height: 1.2; }
+    .lx-cell.lit {
+      border-color: var(--gold); background: rgba(255,215,0,.18);
+      box-shadow: 0 0 16px rgba(255,215,0,.6); transform: scale(1.06);
+    }
+    .lx-cell.win {
+      border-color: var(--gold); background: rgba(255,215,0,.28);
+      box-shadow: 0 0 22px rgba(255,215,0,.85); animation: lxWin .5s ease 3;
+    }
+    @keyframes lxWin { 0%,100% { transform: scale(1.06); } 50% { transform: scale(1.14); } }
+    .lx-center {
+      background: linear-gradient(135deg, var(--gold), #ffae00); color: #000;
+      border: none; border-radius: 12px; display: flex; align-items: center; justify-content: center;
+      font-size: 26px;
+    }
+    #wheel-result { min-height: 26px; margin: 6px 0 12px; font-weight: 800; }
+
+    /* ── POPUP QUẢNG CÁO ── */
+    #promo-overlay {
+      display: none; position: fixed; inset: 0; z-index: 400;
+      background: rgba(0,0,0,.82); backdrop-filter: blur(5px);
+      align-items: center; justify-content: center; padding: 20px;
+    }
+    #promo-overlay.open { display: flex; }
+    #promo-card {
+      width: 100%; max-width: 340px; position: relative; text-align: center;
+      background: linear-gradient(160deg, #1b3d26, #0d2818);
+      border: 2px solid var(--gold); border-radius: 24px; padding: 30px 22px 24px;
+      box-shadow: 0 0 46px rgba(255,215,0,.4);
+      animation: promoPop .45s cubic-bezier(.2,1.3,.4,1);
+      overflow: hidden;
+    }
+    #promo-card::before {
+      content: ''; position: absolute; top: -60%; left: -60%; width: 220%; height: 220%;
+      background: conic-gradient(from 0deg, transparent, rgba(255,215,0,.16), transparent 30%);
+      animation: promoSpin 6s linear infinite; pointer-events: none;
+    }
+    @keyframes promoSpin { to { transform: rotate(360deg); } }
+    @keyframes promoPop { from { transform: scale(.7); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+    #promo-card > * { position: relative; z-index: 1; }
+    .promo-emoji { font-size: 56px; line-height: 1; animation: promoFloat 2s ease-in-out infinite; }
+    @keyframes promoFloat { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-9px); } }
+    .promo-tag {
+      display: inline-block; background: var(--red); color: #fff; font-size: 11px; font-weight: 900;
+      padding: 3px 12px; border-radius: 20px; letter-spacing: 1px; margin: 10px 0 8px;
+    }
+    .promo-title {
+      font-size: 23px; font-weight: 900; line-height: 1.2; margin-bottom: 8px;
+      background: linear-gradient(90deg, #ffd700, #fff3b0, #ffae00);
+      -webkit-background-clip: text; background-clip: text; color: transparent;
+    }
+    .promo-desc { font-size: 14px; color: var(--text); line-height: 1.5; margin-bottom: 6px; }
+    .promo-list { font-size: 13px; color: var(--text2); line-height: 1.7; margin: 8px 0 18px; }
+    .promo-list b { color: var(--gold); }
+    .promo-cta {
+      width: 100%; padding: 16px; border: none; border-radius: 14px; cursor: pointer;
+      background: linear-gradient(135deg, var(--gold), #ffae00); color: #000;
+      font-size: 16px; font-weight: 900; box-shadow: 0 0 20px rgba(255,215,0,.5);
+      animation: ctaPulse 1.3s ease-in-out infinite;
+    }
+    @keyframes ctaPulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.04); } }
+    .promo-later {
+      background: none; border: none; color: var(--text2); font-size: 13px;
+      margin-top: 12px; cursor: pointer; width: 100%;
+    }
+    #promo-close {
+      position: absolute; top: 10px; right: 14px; z-index: 2;
+      background: none; border: none; color: var(--text2); font-size: 22px; cursor: pointer;
+    }
+
+    /* ── NHÀ VÔ ĐỊCH ── */
+    .champ-cta {
+      width: 100%; padding: 30px 18px; border: 2px solid var(--gold); border-radius: 20px;
+      background: linear-gradient(160deg, #1b3d26, #0d2818); color: var(--gold);
+      font-size: 20px; font-weight: 900; line-height: 1.4; cursor: pointer; text-align: center;
+      box-shadow: 0 0 30px rgba(255,215,0,.35); animation: ctaPulse 1.4s ease-in-out infinite;
+    }
+    .champ-cta:active { opacity: .9; }
+    .champ-hero {
+      background: linear-gradient(135deg, #0d2818, #163520);
+      border: 2px solid var(--accent); border-radius: var(--r);
+      padding: 20px; text-align: center;
+    }
+    .champ-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .champ-team {
+      background: var(--card); border: 1px solid var(--border); border-radius: var(--r);
+      padding: 12px 8px; text-align: center; cursor: pointer; transition: border-color .15s, transform .1s;
+    }
+    .champ-team:active { transform: scale(.97); }
+    .champ-team:hover { border-color: var(--gold); }
+    .champ-team .ct-flag { font-size: 30px; line-height: 1; }
+    .champ-team .ct-name { font-size: 13px; font-weight: 800; margin-top: 4px; }
+    .champ-team .ct-odds { font-size: 12px; font-weight: 900; color: var(--gold); margin-top: 2px; }
+    /* modal cược vô địch */
+    #champ-modal-overlay {
+      display: none; position: fixed; inset: 0; z-index: 260;
+      background: rgba(0,0,0,.8); backdrop-filter: blur(4px);
+      align-items: center; justify-content: center; padding: 20px;
+    }
+    #champ-modal-overlay.open { display: flex; }
+    #champ-modal-box {
+      background: var(--card); border: 2px solid var(--gold); border-radius: 20px;
+      padding: 22px 20px; width: 100%; max-width: 320px; text-align: center;
+    }
+    #champ-modal-box h3 { font-size: 20px; font-weight: 900; margin: 4px 0 2px; }
+
+    /* ── JACKPOT ── */
+    #jp-spin-overlay {
+      display: none; position: fixed; inset: 0; z-index: 260;
+      background: rgba(0,0,0,.8); backdrop-filter: blur(4px);
+      align-items: center; justify-content: center; padding: 20px;
+    }
+    #jp-spin-overlay.open { display: flex; }
+    #jp-spin-box {
+      background: var(--card); border: 2px solid var(--gold); border-radius: 20px;
+      padding: 22px 20px; width: 100%; max-width: 340px; text-align: center;
+    }
+    #jp-spin-box h3 { font-size: 19px; font-weight: 900; margin-bottom: 2px; }
+    #jp-spin-list {
+      max-height: 240px; overflow-y: auto; margin: 14px 0; display: flex; flex-direction: column; gap: 6px;
+    }
+    .jp-spin-row {
+      padding: 10px; border-radius: 10px; background: var(--card2);
+      border: 2px solid var(--border); font-size: 14px; font-weight: 800;
+      transition: transform .06s, box-shadow .06s, border-color .06s;
+    }
+    .jp-spin-row.lit {
+      border-color: var(--gold); background: rgba(255,215,0,.2);
+      box-shadow: 0 0 16px rgba(255,215,0,.6); transform: scale(1.04);
+    }
+    #jp-spin-result { min-height: 26px; margin: 6px 0 12px; font-weight: 800; color: var(--gold); }
+    .jp-pool {
+      background: linear-gradient(135deg, #2a1f00, #163520);
+      border: 2px solid var(--gold); border-radius: var(--r);
+      padding: 16px; text-align: center; margin-bottom: 14px;
+    }
+    .jp-pool .lbl { font-size: 11px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: var(--gold); }
+    .jp-pool .val { font-size: 30px; font-weight: 900; color: var(--gold); text-shadow: 0 0 12px rgba(255,215,0,.5); }
+    .jp-card {
+      background: var(--card); border: 1px solid var(--border); border-radius: var(--r);
+      padding: 14px; margin-bottom: 10px; position: relative;
+    }
+    .jp-card .jp-teams { font-size: 14px; font-weight: 800; margin-bottom: 8px; }
+    .jp-meta { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+    .jp-count { font-size: 12px; font-weight: 800; color: var(--accent); }
+    .jp-join {
+      padding: 8px 16px; border: none; border-radius: 10px; cursor: pointer;
+      background: linear-gradient(135deg, var(--gold), #ffae00); color: #000; font-size: 13px; font-weight: 900;
+    }
+    /* Nút Jackpot nổi bật trên thẻ trận */
+    .jp-match-btn {
+      width: 100%; margin-top: 10px; padding: 11px; border: none; border-radius: 12px; cursor: pointer;
+      background: linear-gradient(135deg, var(--gold), #ffae00); color: #000;
+      font-size: 13px; font-weight: 900; letter-spacing: .2px;
+      box-shadow: 0 0 16px rgba(255,215,0,.45); animation: jpPulse 1.5s ease-in-out infinite;
+    }
+    .jp-match-btn:active { opacity: .88; }
+    .jp-match-btn.joined {
+      background: var(--card2); color: var(--gold); border: 1px solid var(--gold);
+      box-shadow: none; animation: none; font-weight: 800;
+    }
+    @keyframes jpPulse { 0%,100% { transform: scale(1); box-shadow: 0 0 14px rgba(255,215,0,.4); } 50% { transform: scale(1.02); box-shadow: 0 0 22px rgba(255,215,0,.7); } }
+    .jp-result {
+      margin-top: 10px; padding: 9px 12px; border-radius: 10px;
+      background: rgba(255,215,0,.08); border: 1px solid var(--border);
+      font-size: 12px; line-height: 1.5;
+    }
+  </style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div id="app-header">
+  <div class="logo">
+    ⚽ <span>Đoàn thanh niên</span>
+    <small>vui Worldcup 2026</small>
+  </div>
+  <div id="user-badge" onclick="logoutPrompt()" style="display:none"></div>
+</div>
+
+<!-- WINNER BANNER (chạy ngang) -->
+<div id="winner-banner"></div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<!-- ══════════════ VIEW: AUTH ══════════════ -->
+<div id="view-auth" class="view active">
+
+  <!-- PLAYER PICKER -->
+  <div id="picker-wrap">
+    <div class="auth-hero">
+      <span class="ball">🏆</span>
+      <h1>Đoàn thanh niên<br>vui Worldcup 2026</h1>
+      <p>Chọn tên của bạn để bắt đầu</p>
+      <button id="admin-entry-btn" onclick="showView('admin')">⚙️ Admin</button>
+    </div>
+    <div class="player-grid" id="player-grid"></div>
+  </div>
+
+  <!-- REGISTER FORM -->
+  <div id="register-wrap" style="display:none">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:20px;padding-top:16px">
+      <button onclick="showPicker()" style="background:none;border:none;color:var(--text2);font-size:22px;cursor:pointer;padding:0">←</button>
+      <h2 style="font-size:18px;font-weight:900">Tạo tài khoản</h2>
+    </div>
+    <div class="auth-form">
+      <input type="text" id="reg-name" placeholder="Họ và tên đầy đủ" autocomplete="name" />
+      <input type="password" id="reg-pwd" placeholder="Đặt mật khẩu (tối thiểu 4 ký tự)" />
+      <input type="password" id="reg-pwd2" placeholder="Nhập lại mật khẩu" />
+      <button class="btn-primary" onclick="doRegister()">✅ Gửi đăng ký</button>
+      <p style="font-size:12px;color:var(--text2);text-align:center">Admin sẽ duyệt tài khoản trước khi bạn tham gia được</p>
+    </div>
+  </div>
+
+</div>
+
+<!-- ══════════════ PASSWORD MODAL ══════════════ -->
+<div id="pwd-modal-overlay" onclick="closePwdModal(event)">
+  <div id="pwd-modal-box">
+    <div class="pm-avatar" id="pm-avatar"></div>
+    <h3 id="pm-name"></h3>
+    <p class="pm-sub">Nhập mật khẩu để vào</p>
+    <input type="password" id="pwd-modal-input" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')doPwdLogin()" />
+    <div id="pwd-error"></div>
+    <button class="btn-primary" onclick="doPwdLogin()">Vào ▶</button>
+    <button class="btn-secondary" onclick="closePwdModal()">Huỷ</button>
+  </div>
+</div>
+
+<!-- ══════════════ VIEW: MATCHES ══════════════ -->
+<div id="view-matches" class="view">
+  <div id="matches-list"></div>
+</div>
+
+<!-- ══════════════ VIEW: NHÀ VÔ ĐỊCH ══════════════ -->
+<div id="view-champ" class="view">
+  <div id="champ-content"></div>
+</div>
+
+<!-- ══════════════ VIEW: LEADERBOARD ══════════════ -->
+<div id="view-leaderboard" class="view">
+  <div id="lb-tabs" style="display:flex;gap:8px;margin-bottom:14px">
+    <div class="filter-chip active" onclick="setLbMode(this,'ko')">⚔️ Vòng loại trực tiếp</div>
+    <div class="filter-chip" onclick="setLbMode(this,'group')">📋 Vòng bảng</div>
+  </div>
+  <div class="total-box">
+    <div class="lbl" id="total-lbl">Đóng góp vòng loại trực tiếp</div>
+    <div class="val" id="total-pts">0</div>
+    <div style="font-size:12px;color:var(--text2);margin-top:4px" id="total-sub"></div>
+  </div>
+  <p class="section-title">Vinh danh TOP các mạnh thường quân</p>
+  <div id="lb-list"></div>
+</div>
+
+<!-- ══════════════ VIEW: SHOP / VẬT PHẨM ══════════════ -->
+<div id="view-shop" class="view">
+  <div class="shop-balance">
+    <div class="lbl">Số dư vòng loại trực tiếp</div>
+    <div class="val" id="shop-balance-val">0</div>
+    <div style="font-size:11px;color:var(--text2);margin-top:4px">Mua vật phẩm sẽ trừ tiền ở bảng xếp hạng vòng loại trực tiếp</div>
+  </div>
+  <p class="section-title">🛒 Cửa hàng vật phẩm</p>
+  <div id="shop-list"></div>
+</div>
+
+<!-- ══════════════ VIEW: ADMIN ══════════════ -->
+<div id="view-admin" class="view">
+  <p class="section-title">⚙️ Admin</p>
+  <div id="admin-login-wrap">
+    <input type="password" id="admin-pwd-input" placeholder="Mật khẩu admin" />
+    <button class="btn-primary" onclick="adminLogin()">Đăng nhập Admin</button>
+  </div>
+  <div id="admin-panel" style="display:none">
+    <p style="color:var(--green);font-weight:700;margin-bottom:16px;">✅ Đã đăng nhập Admin</p>
+
+    <!-- DUYỆT TÀI KHOẢN -->
+    <p class="section-title">👤 Duyệt tài khoản</p>
+    <div id="admin-users-list"></div>
+
+    <!-- TỶ LỆ ĐIỂM -->
+    <p class="section-title" style="margin-top:24px">💱 Tỷ lệ điểm (áp dụng cho trận chấm SAU khi lưu)</p>
+    <div class="admin-score-row" style="gap:8px">
+      <div style="flex:1">
+        <div style="font-size:11px;color:var(--text2);margin-bottom:4px">Đoán ĐÚNG được</div>
+        <input type="number" id="admin-odds-correct" min="0" step="1000" value="50000" style="width:100%">
+      </div>
+      <div style="flex:1">
+        <div style="font-size:11px;color:var(--text2);margin-bottom:4px">Đoán SAI mất</div>
+        <input type="number" id="admin-odds-wrong" min="0" step="1000" value="10000" style="width:100%">
+      </div>
+    </div>
+    <button class="btn-primary" onclick="adminSaveOdds()">💾 Lưu tỷ lệ điểm</button>
+    <p style="font-size:11px;color:var(--text2);margin-top:6px">Trận đã lưu kết quả vẫn giữ tỷ lệ cũ. Tỷ lệ mới chỉ áp dụng cho trận lưu sau đó.</p>
+
+    <!-- NHÀ VÔ ĐỊCH -->
+    <p class="section-title" style="margin-top:24px">👑 Nhà vô địch (nhập thủ công)</p>
+    <select id="admin-champion-select" style="width:100%;padding:14px;background:var(--card2);border:1px solid var(--border);border-radius:var(--r);color:var(--text);font-size:15px;margin-bottom:10px"></select>
+    <button class="btn-primary" onclick="adminSaveChampion()">💾 Lưu nhà vô địch</button>
+    <p style="font-size:11px;color:var(--text2);margin-top:6px">Để trống = tự lấy đội thắng trận chung kết. Lưu đội = chốt nhà vô địch & quyết toán cược.</p>
+
+    <!-- JACKPOT: MỞ/TẮT THEO TRẬN -->
+    <p class="section-title" style="margin-top:24px">🎰 Mở / Tắt Jackpot theo trận</p>
+    <select id="admin-jpen-select" onchange="onAdminJpEnSelect()" style="width:100%;padding:14px;background:var(--card2);border:1px solid var(--border);border-radius:var(--r);color:var(--text);font-size:15px;margin-bottom:8px"></select>
+    <div id="admin-jpen-status" style="font-size:13px;font-weight:700;margin-bottom:8px"></div>
+    <button class="btn-primary" id="admin-jpen-btn" onclick="toggleJpEnabled()">Bật/Tắt</button>
+    <p style="font-size:11px;color:var(--text2);margin-top:6px">Mặc định mọi trận đều MỞ Jackpot. Tắt thì nút tham gia ẩn ở trận đó.</p>
+
+    <!-- JACKPOT: CHỌN NGƯỜI QUAY -->
+    <p class="section-title" style="margin-top:24px">🎰 Jackpot: chọn người quay</p>
+    <select id="admin-jp-select" onchange="onAdminJpSelect()" style="width:100%;padding:14px;background:var(--card2);border:1px solid var(--border);border-radius:var(--r);color:var(--text);font-size:15px;margin-bottom:8px"></select>
+    <div id="admin-jp-info" style="font-size:12px;color:var(--text2);margin-bottom:8px"></div>
+    <select id="admin-jp-spinner" style="width:100%;padding:14px;background:var(--card2);border:1px solid var(--border);border-radius:var(--r);color:var(--text);font-size:15px;margin-bottom:8px"></select>
+    <button class="btn-primary" onclick="adminSaveSpinner()">💾 Lưu người quay</button>
+    <div id="admin-jp-result" style="margin-top:10px;font-size:13px"></div>
+
+    <!-- NHẬP KẾT QUẢ -->
+    <p class="section-title" style="margin-top:24px">Nhập kết quả trận (90 phút)</p>
+    <select id="admin-match-select" onchange="onAdminMatchSelect()"></select>
+    <div id="admin-match-info" style="color:var(--text2);font-size:13px;margin-bottom:12px;"></div>
+    <div class="admin-score-row">
+      <span id="admin-team1" style="font-weight:800;flex:1;text-align:right;font-size:13px;"></span>
+      <input type="number" id="admin-score1" min="0" max="20" value="0" oninput="updateAdvanceUI()">
+      <span style="font-size:20px;font-weight:900;color:var(--text2)">–</span>
+      <input type="number" id="admin-score2" min="0" max="20" value="0" oninput="updateAdvanceUI()">
+      <span id="admin-team2" style="font-weight:800;flex:1;text-align:left;font-size:13px;"></span>
+    </div>
+    <!-- Khi hoà 90 phút: chọn đội đi tiếp (penalty) -->
+    <div id="admin-advance-wrap" style="display:none">
+      <div class="adv-title">⚖️ Hoà 90 phút – chọn đội đi tiếp (penalty)</div>
+      <div class="adv-opts">
+        <label><input type="radio" name="adv-pick" value="1"><span id="adv-name1"></span></label>
+        <label><input type="radio" name="adv-pick" value="2"><span id="adv-name2"></span></label>
+      </div>
+    </div>
+    <button class="btn-primary" onclick="adminSaveResult()">💾 Lưu & tính điểm</button>
+    <div id="admin-result-list" style="margin-top:12px;"></div>
+    <p class="section-title" style="margin-top:24px">📋 Dự đoán theo trận</p>
+    <div id="admin-preds-view"></div>
+  </div>
+</div>
+
+<!-- ══════════════ PREDICT MODAL ══════════════ -->
+<div id="modal-overlay" onclick="closeModal(event)">
+  <div id="modal-box">
+    <h3 id="modal-title">Dự đoán tỷ số</h3>
+    <p class="modal-sub" id="modal-sub"></p>
+    <div class="score-inputs">
+      <input type="number" id="pred1" min="0" max="20" value="0" />
+      <span class="score-sep">–</span>
+      <input type="number" id="pred2" min="0" max="20" value="0" />
+    </div>
+    <!-- Trái tim: tỷ số dự phòng -->
+    <div id="heart-section">
+      <button id="heart-btn" class="heart-btn" style="display:none" onclick="activateHeart()"></button>
+      <div id="backup-wrap" style="display:none">
+        <div class="backup-label">❤️ TỶ SỐ DỰ PHÒNG (trúng 1 trong 2 là đúng)</div>
+        <div class="score-inputs">
+          <input type="number" id="predB1" min="0" max="20" value="0" />
+          <span class="score-sep">–</span>
+          <input type="number" id="predB2" min="0" max="20" value="0" />
+        </div>
+      </div>
+    </div>
+    <!-- x2: nhân đôi thưởng -->
+    <div id="x2-section">
+      <button id="x2-btn" class="heart-btn" style="display:none;border-color:var(--gold);background:rgba(255,215,0,.08);color:var(--gold)" onclick="activateX2()"></button>
+      <div id="x2-active" class="backup-label" style="display:none;color:var(--gold)">⚡ ĐANG DÙNG x2 — đoán đúng ăn đôi +100.000đ</div>
+    </div>
+    <p class="ko-note" id="ko-note">⚽ Chỉ tính tỷ số 90 phút chính thức · Đoán đúng +50.000đ</p>
+    <button class="btn-primary" onclick="submitPred()">✅ Xác nhận</button>
+    <button class="btn-secondary" onclick="closeModal(null)">Huỷ</button>
+  </div>
+</div>
+
+<!-- ══════════════ POPUP QUẢNG CÁO ══════════════ -->
+<div id="promo-overlay" onclick="closePromo(event)">
+  <div id="promo-card">
+    <button id="promo-close" onclick="closePromo()">✕</button>
+    <div class="promo-emoji">🏆👑</div>
+    <div class="promo-tag">🔥 SỰ KIỆN HOT</div>
+    <div class="promo-title">HÃY DỰ ĐOÁN<br>ĐỘI VÔ ĐỊCH NĂM NAY!</div>
+    <div class="promo-desc">Đặt cược nhà vô địch World Cup ngay 👇</div>
+    <div class="promo-list">
+      💰 Tỷ lệ thắng tới <b>20x</b><br>
+      👑 Mỗi người được cược <b>2 lần</b><br>
+      ⏰ Nhanh tay trước khi hết hạn!
+    </div>
+    <button class="promo-cta" onclick="goChampFromPromo()">👑 DỰ ĐOÁN NGAY</button>
+    <button class="promo-later" onclick="closePromo()">Để sau</button>
+  </div>
+</div>
+
+<!-- ══════════════ WHEEL / LÌ XÌ MODAL ══════════════ -->
+<div id="wheel-overlay" onclick="closeWheel(event)">
+  <div id="wheel-box">
+    <h3>🎁 Lì xì may mắn</h3>
+    <p class="modal-sub" style="font-size:12px;color:var(--text2)">Mỗi lượt 7.000đ · đèn nhảy quanh các ô, dừng ô nào trúng ô đó</p>
+    <div id="wheel-grid"></div>
+    <div id="wheel-result"></div>
+    <button class="btn-primary" id="wheel-spin-btn" onclick="spinWheel()">Quay</button>
+    <button class="btn-secondary" id="wheel-try-btn" onclick="trySpin()" style="margin-top:8px">🎮 Quay thử (miễn phí, không tính quà)</button>
+    <button class="btn-secondary" onclick="closeWheel()">Đóng</button>
+  </div>
+</div>
+
+<!-- ══════════════ JACKPOT QUAY MODAL ══════════════ -->
+<div id="jp-spin-overlay" onclick="closeJpSpin(event)">
+  <div id="jp-spin-box">
+    <h3>🎰 Quay Jackpot</h3>
+    <p class="modal-sub" id="jp-spin-sub"></p>
+    <div id="jp-spin-list"></div>
+    <div id="jp-spin-result"></div>
+    <button class="btn-primary" id="jp-spin-btn" onclick="doJpSpin()">Quay 🎰</button>
+    <button class="btn-secondary" onclick="closeJpSpin()">Đóng</button>
+  </div>
+</div>
+
+<!-- ══════════════ CƯỢC NHÀ VÔ ĐỊCH MODAL ══════════════ -->
+<div id="champ-modal-overlay" onclick="closeChampModal(event)">
+  <div id="champ-modal-box">
+    <div id="champ-pick-flag" style="font-size:48px"></div>
+    <h3 id="champ-pick-name"></h3>
+    <p class="modal-sub" id="champ-pick-odds"></p>
+    <p style="font-size:13px;color:var(--text2);margin-bottom:6px">Nhập tiền cược (tối đa 30.000đ):</p>
+    <input type="number" id="champ-stake" min="1000" max="30000" step="1000" value="10000"
+      style="width:100%;padding:14px;font-size:18px;font-weight:800;text-align:center;background:var(--card2);border:1px solid var(--border);border-radius:var(--r);color:var(--text);margin-bottom:8px" />
+    <div id="champ-payout" style="font-size:13px;color:var(--gold);font-weight:800;margin-bottom:14px"></div>
+    <button class="btn-primary" onclick="confirmChampBet()">✅ Đặt cược</button>
+    <button class="btn-secondary" onclick="closeChampModal()">Huỷ</button>
+  </div>
+</div>
+
+<!-- ══════════════ BOTTOM NAV ══════════════ -->
+<nav id="bottom-nav">
+  <button onclick="showView('matches')" id="nav-matches">
+    <span class="icon">🏆</span>Trận đấu
+  </button>
+  <button onclick="showView('champ')" id="nav-champ">
+    <span class="icon">👑</span>Vô địch
+  </button>
+  <button onclick="showView('shop')" id="nav-shop">
+    <span class="icon">🛒</span>Vật phẩm
+  </button>
+  <button onclick="showView('leaderboard')" id="nav-leaderboard">
+    <span class="icon">📊</span>Xếp hạng
+  </button>
+  <button onclick="showView('admin')" id="nav-admin">
+    <span class="icon">⚙️</span>Admin
+  </button>
+</nav>
+
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+
+<script>
+// ══════════════════════════════════════════════
+//  FIREBASE CONFIG
+// ══════════════════════════════════════════════
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyC4sizkFzJnnmwbIN2_zcQst1DlDMMah88",
+  authDomain: "dtn-554e4.firebaseapp.com",
+  databaseURL: "https://dtn-554e4-default-rtdb.firebaseio.com",
+  projectId: "dtn-554e4",
+  storageBucket: "dtn-554e4.firebasestorage.app",
+  messagingSenderId: "908840760249",
+  appId: "1:908840760249:web:f361f4d74b5b77d9243c68"
+};
+const DB = 'mg'; // root path trong Firebase
+
+// ══════════════════════════════════════════════
+//  CONFIG
+// ══════════════════════════════════════════════
+const ADMIN_PASSWORD = '443004';
+const PTS_CORRECT    = 50000;   // đoán đúng vòng loại trực tiếp = +50.000
+const PTS_WRONG      = -10000;  // đoán sai = -10.000
+const DEFAULT_SCORE  = '5-5';
+const NO_SCORE_MATCHES = [73];  // Trận đầu Nam Phi vs Canada: KHÔNG tính điểm
+// Quy tắc tính tiền VÒNG BẢNG: đúng +20.000 / sai -10.000 mỗi trận
+const GROUP_PTS_CORRECT = 20000;
+const GROUP_PTS_WRONG   = -10000;
+
+// 12 SKIN CON GIÁP – đồng giá 10.000đ, tên nổi bật theo màu + hình con giáp
+const SKIN_PRICE = 10000;
+const SKINS = [
+  {id:'ty',   emoji:'🐭', color:'#9fb3c8', name:'Tý · Chuột'},
+  {id:'suu',  emoji:'🐃', color:'#a1887f', name:'Sửu · Trâu'},
+  {id:'dan',  emoji:'🐯', color:'#ff9800', name:'Dần · Hổ'},
+  {id:'mao',  emoji:'🐱', color:'#c0ca33', name:'Mão · Mèo'},
+  {id:'thin', emoji:'🐲', color:'#00e5ff', name:'Thìn · Rồng'},
+  {id:'ty2',  emoji:'🐍', color:'#7cf03a', name:'Tỵ · Rắn'},
+  {id:'ngo',  emoji:'🐴', color:'#ff5252', name:'Ngọ · Ngựa'},
+  {id:'mui',  emoji:'🐐', color:'#ffd54f', name:'Mùi · Dê'},
+  {id:'than', emoji:'🐵', color:'#d4a373', name:'Thân · Khỉ'},
+  {id:'dau',  emoji:'🐔', color:'#ff4081', name:'Dậu · Gà'},
+  {id:'tuat', emoji:'🐶', color:'#b388ff', name:'Tuất · Chó'},
+  {id:'hoi',  emoji:'🐷', color:'#f48fb1', name:'Hợi · Lợn'},
+];
+
+// VÒNG QUAY LÌ XÌ – 8 ô. +100.000đ tỉ lệ 2%, 7 ô còn lại đều nhau (14%/ô)
+const SPIN_PRICE = 7000;
+const WHEEL = [
+  {type:'luck',    emoji:'🍀', label:'Chúc may mắn',    color:'#2e7d32'},
+  {type:'money',   emoji:'💵', label:'+5.000đ',  amount:5000,   color:'#1565c0'},
+  {type:'respin',  emoji:'🔄', label:'Thêm lượt quay',  color:'#6a1b9a'},
+  {type:'money',   emoji:'💰', label:'+20.000đ', amount:20000,  color:'#ad1457'},
+  {type:'skin',    emoji:'🎨', label:'Tặng 1 skin',     color:'#00838f'},
+  {type:'money',   emoji:'🪙', label:'+7.000đ',  amount:7000,   color:'#4527a0'},
+  {type:'voucher', emoji:'🎟️', label:'Voucher -50%',    color:'#ef6c00'},
+  {type:'money',   emoji:'💎', label:'+100.000đ', amount:100000, color:'#c62828'},
+];
+
+// CỜ + TỶ LỆ CƯỢC NHÀ VÔ ĐỊCH
+const CHAMP_MAX_STAKE = 30000; // cược tối đa 30.000đ mỗi lần
+const CHAMP_FLAG = {
+  "Nam Phi":"🇿🇦","Canada":"🇨🇦","Đức":"🇩🇪","Paraguay":"🇵🇾","Hà Lan":"🇳🇱","Ma-rốc":"🇲🇦",
+  "Brazil":"🇧🇷","Nhật Bản":"🇯🇵","Pháp":"🇫🇷","Thụy Điển":"🇸🇪","Bờ Biển Ngà":"🇨🇮","Na Uy":"🇳🇴",
+  "Mê-hi-cô":"🇲🇽","Ecuador":"🇪🇨","Anh":"🏴󠁧󠁢󠁥󠁮󠁧󠁿","CHDC Congo":"🇨🇩","Mỹ":"🇺🇸","Bosnia & Herz.":"🇧🇦",
+  "Bỉ":"🇧🇪","Senegal":"🇸🇳","Colombia":"🇨🇴","Ghana":"🇬🇭","Tây Ban Nha":"🇪🇸","Áo":"🇦🇹",
+  "Thụy Sĩ":"🇨🇭","Algeria":"🇩🇿","Argentina":"🇦🇷","Cape Verde":"🇨🇻","Bồ Đào Nha":"🇵🇹",
+  "Croatia":"🇭🇷","Úc":"🇦🇺","Ai Cập":"🇪🇬","Uruguay":"🇺🇾"
+};
+const CHAMP_ODDS_LIST = [
+  { x:3, teams:["Pháp","Argentina","Tây Ban Nha","Anh"] },
+  { x:5,   teams:["Brazil","Đức","Bồ Đào Nha","Hà Lan","Croatia","Uruguay"] },
+  { x:10,  teams:["Bỉ","Ma-rốc","Nhật Bản","Thụy Sĩ","Senegal","Colombia","Na Uy","Mê-hi-cô","Mỹ","Áo"] },
+];
+function champOdds(name) {
+  for (const g of CHAMP_ODDS_LIST) if (g.teams.includes(name)) return g.x;
+  return 20; // còn lại (nhóm 20x)
+}
+// Lần cược 2: tỷ lệ chỉ còn 75% so với lần 1
+function champOddsForSlot(name, slot) {
+  const base = champOdds(name);
+  return slot === '1' ? Math.round(base * 0.75 * 100) / 100 : base;
+}
+// Tỷ lệ hiển thị theo lượt cược hiện tại của người dùng
+function champEffOdds(name) { return champOddsForSlot(name, champOpenSlot(currentUser?.id)); }
+function champFlag(name) { return CHAMP_FLAG[name] || "🏳️"; }
+
+// ══════════════════════════════════════════════
+//  MATCH DATA – 32 trận VÒNG LOẠI TRỰC TIẾP WC 2026
+//  (Vòng bảng đã kết thúc – bảng xếp hạng vẫn tính luỹ kế)
+//  Khung đấu theo lịch chính thức FIFA. 32 đội là DỰ KIẾN, admin nhập lại kết quả thật.
+//  s1/s2 = nguồn đội: {m: id trận trước, t:'W' thắng | 'L' thua}
+// ══════════════════════════════════════════════
+const MATCHES = [
+  // ── VÒNG 1/16 (Round of 32) – 16 cặp đấu CHÍNH THỨC (theo lịch FIFA) ──
+  {id:73, round:"Vòng 1/16", team1:"Nam Phi",      team2:"Canada",          kickoff:"2026-06-28T19:00:00Z"},
+  {id:74, round:"Vòng 1/16", team1:"Đức",          team2:"Paraguay",        kickoff:"2026-06-29T20:30:00Z"},
+  {id:75, round:"Vòng 1/16", team1:"Hà Lan",       team2:"Ma-rốc",          kickoff:"2026-06-30T01:00:00Z"},
+  {id:76, round:"Vòng 1/16", team1:"Brazil",       team2:"Nhật Bản",        kickoff:"2026-06-29T17:00:00Z"},
+  {id:77, round:"Vòng 1/16", team1:"Pháp",         team2:"Thụy Điển",       kickoff:"2026-06-30T21:00:00Z"},
+  {id:78, round:"Vòng 1/16", team1:"Bờ Biển Ngà",  team2:"Na Uy",           kickoff:"2026-06-30T17:00:00Z"},
+  {id:79, round:"Vòng 1/16", team1:"Mê-hi-cô",     team2:"Ecuador",         kickoff:"2026-07-01T01:00:00Z"},
+  {id:80, round:"Vòng 1/16", team1:"Anh",          team2:"CHDC Congo",      kickoff:"2026-07-01T16:00:00Z"},
+  {id:81, round:"Vòng 1/16", team1:"Mỹ",           team2:"Bosnia & Herz.",  kickoff:"2026-07-02T00:00:00Z"},
+  {id:82, round:"Vòng 1/16", team1:"Bỉ",           team2:"Senegal",         kickoff:"2026-07-01T20:00:00Z"},
+  {id:83, round:"Vòng 1/16", team1:"Colombia",     team2:"Ghana",           kickoff:"2026-07-04T01:30:00Z"},
+  {id:84, round:"Vòng 1/16", team1:"Tây Ban Nha",  team2:"Áo",              kickoff:"2026-07-02T19:00:00Z"},
+  {id:85, round:"Vòng 1/16", team1:"Thụy Sĩ",      team2:"Algeria",         kickoff:"2026-07-03T03:00:00Z"},
+  {id:86, round:"Vòng 1/16", team1:"Argentina",    team2:"Cape Verde",      kickoff:"2026-07-03T22:00:00Z"},
+  {id:87, round:"Vòng 1/16", team1:"Bồ Đào Nha",   team2:"Croatia",         kickoff:"2026-07-02T23:00:00Z"},
+  {id:88, round:"Vòng 1/16", team1:"Úc",           team2:"Ai Cập",          kickoff:"2026-07-03T18:00:00Z"},
+
+  // ── VÒNG 1/8 (Round of 16) – 8 trận ──
+  {id:89, round:"Vòng 1/8", s1:{m:74,t:'W'}, s2:{m:77,t:'W'}, kickoff:"2026-07-06T19:00:00Z"},
+  {id:90, round:"Vòng 1/8", s1:{m:73,t:'W'}, s2:{m:75,t:'W'}, kickoff:"2026-07-06T23:00:00Z"},
+  {id:91, round:"Vòng 1/8", s1:{m:76,t:'W'}, s2:{m:78,t:'W'}, kickoff:"2026-07-07T19:00:00Z"},
+  {id:92, round:"Vòng 1/8", s1:{m:79,t:'W'}, s2:{m:80,t:'W'}, kickoff:"2026-07-07T23:00:00Z"},
+  {id:93, round:"Vòng 1/8", s1:{m:83,t:'W'}, s2:{m:84,t:'W'}, kickoff:"2026-07-08T19:00:00Z"},
+  {id:94, round:"Vòng 1/8", s1:{m:81,t:'W'}, s2:{m:82,t:'W'}, kickoff:"2026-07-08T23:00:00Z"},
+  {id:95, round:"Vòng 1/8", s1:{m:86,t:'W'}, s2:{m:88,t:'W'}, kickoff:"2026-07-09T19:00:00Z"},
+  {id:96, round:"Vòng 1/8", s1:{m:85,t:'W'}, s2:{m:87,t:'W'}, kickoff:"2026-07-09T23:00:00Z"},
+
+  // ── TỨ KẾT – 4 trận ──
+  {id:97,  round:"Tứ kết", s1:{m:89,t:'W'}, s2:{m:90,t:'W'}, kickoff:"2026-07-10T23:00:00Z"},
+  {id:98,  round:"Tứ kết", s1:{m:93,t:'W'}, s2:{m:94,t:'W'}, kickoff:"2026-07-11T19:00:00Z"},
+  {id:99,  round:"Tứ kết", s1:{m:91,t:'W'}, s2:{m:92,t:'W'}, kickoff:"2026-07-11T23:00:00Z"},
+  {id:100, round:"Tứ kết", s1:{m:95,t:'W'}, s2:{m:96,t:'W'}, kickoff:"2026-07-12T23:00:00Z"},
+
+  // ── BÁN KẾT – 2 trận ──
+  {id:101, round:"Bán kết", s1:{m:97,t:'W'}, s2:{m:98,t:'W'},  kickoff:"2026-07-14T23:00:00Z"},
+  {id:102, round:"Bán kết", s1:{m:99,t:'W'}, s2:{m:100,t:'W'}, kickoff:"2026-07-15T23:00:00Z"},
+
+  // ── TRANH HẠNG 3 ──
+  {id:103, round:"Tranh hạng 3", s1:{m:101,t:'L'}, s2:{m:102,t:'L'}, kickoff:"2026-07-18T19:00:00Z"},
+
+  // ── CHUNG KẾT ──
+  {id:104, round:"Chung kết", s1:{m:101,t:'W'}, s2:{m:102,t:'W'}, kickoff:"2026-07-19T19:00:00Z"},
+].map(m => ({...m, deadline: m.kickoff, date: (() => {
+  const d = new Date(new Date(m.kickoff).getTime() + 7*3600*1000);
+  return d.toISOString().slice(0,10);
+})()}));
+
+// ══════════════════════════════════════════════
+//  STATE
+// ══════════════════════════════════════════════
+let db = null;
+let firebaseOK = false;
+let currentUser = null; // {id, name, approved}
+let isAdmin = false;
+let activeMatchId = null;
+let currentFilter = 'all';
+
+let users       = {};
+let predictions = {};
+let predictions2 = {}; // tỷ số dự phòng (trái tim): {matchId:{uid:'x-y'}}
+let results     = {};
+let scores      = {};
+let advances    = {}; // {matchId: '1'|'2'} – đội đi tiếp khi hoà 90 phút
+let shop        = {}; // {uid:{magnifier,star,hearts,spent,heartMatches:{mid:true}}}
+let champBets   = {}; // {uid:{team,stake,odds}} – cược nhà vô địch
+let oddsCfg     = {correct: 50000, wrong: 10000}; // tỷ lệ điểm HIỆN TẠI (admin chỉnh)
+let matchOdds   = {}; // {matchId:{correct,wrong}} – tỷ lệ ĐÃ KHOÁ của từng trận khi chấm
+let championWinner = ''; // nhà vô địch do admin nhập (ưu tiên hơn tự suy từ chung kết)
+let jackpots    = {}; // {matchId:{uid:true}} – ai đã tham gia
+let jpSpinner   = {}; // {matchId: uid} – người được admin chọn để quay
+let jpWinner    = {}; // {matchId: uid} – người thắng sau khi quay
+let jpEnabled   = {}; // {matchId: false} – trận bị admin TẮT jackpot (mặc định mở)
+
+// ══════════════════════════════════════════════
+//  HELPERS
+// ══════════════════════════════════════════════
+async function hashPwd(pwd) {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(pwd));
+  return [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2,'0')).join('');
+}
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2800);
+}
+function isLocked(m) { return new Date() >= new Date(m.kickoff); }
+function getPred(matchId, userId) { return predictions[matchId]?.[userId] || null; }
+function getPred2(matchId, userId) { return predictions2[matchId]?.[userId] || null; }
+
+// ── VẬT PHẨM (shop) ──
+function hasMagnifier(uid) { return !!shop[uid]?.magnifier; }
+function hasStar(uid)      { return !!shop[uid]?.star; }
+function heartsOf(uid)     { return shop[uid]?.hearts || 0; }
+function spentOf(uid)      { return shop[uid]?.spent || 0; }
+function heartUsedOn(uid, mid) { return !!shop[uid]?.heartMatches?.[mid]; }
+// Trái tim miễn phí (mỗi người 1 lần)
+function heartFreeClaimed(uid) { return !!shop[uid]?.freeHeart; }
+// Vật phẩm x2 (nhân đôi tiền thưởng khi đoán đúng)
+function x2Of(uid)          { return shop[uid]?.x2 || 0; }
+function x2UsedOn(uid, mid)  { return !!shop[uid]?.x2Matches?.[mid]; }
+// Tỷ lệ điểm hiện tại (admin chỉnh) – dạng magnitude dương
+function curCorrect()  { return Number(oddsCfg.correct) || 50000; }
+function curWrongMag() { return Number(oddsCfg.wrong)   || 10000; }
+// Tỷ lệ ĐÃ KHOÁ của 1 trận (lúc chấm); nếu chưa có thì mặc định 50.000/10.000
+function oddsForMatch(mid) { const o = matchOdds[mid]; return o ? {c: Number(o.correct), w: Number(o.wrong)} : {c: 50000, w: 10000}; }
+// Điểm 1 trận cho 1 user theo tỷ lệ {c,w}; x2 nhân đôi phần thắng
+function ptsForResult(uid, mid, ok, odds) {
+  if (!ok) return -odds.w;
+  return (x2UsedOn(uid, mid) ? 2 : 1) * odds.c;
+}
+// Skin con giáp
+function skinById(id) { return SKINS.find(s => s.id === id) || null; }
+function ownsSkin(uid, id) { return !!shop[uid]?.skins?.[id]; }
+function activeSkin(uid) { const id = shop[uid]?.skin; return id ? skinById(id) : null; }
+// Combo streak + lì xì
+function ownsCombo(uid)     { return !!shop[uid]?.combo; }
+function luckyBonusOf(uid)  { return shop[uid]?.luckyBonus || 0; }
+function freeSpinsOf(uid)   { return shop[uid]?.freeSpins || 0; }
+function skinTokensOf(uid)  { return shop[uid]?.skinTokens || 0; }
+function hasVoucher50(uid)  { return !!shop[uid]?.voucher50; }
+// Thưởng combo: đoán đúng liên tiếp (theo thứ tự trận đã có kết quả). 2 lt +20k, 3 lt +50k (cộng dồn)
+function comboBonus(uid) {
+  if (!ownsCombo(uid)) return 0;
+  let streak = 0, bonus = 0;
+  for (const m of MATCHES) {
+    if (NO_SCORE_MATCHES.includes(m.id)) continue;
+    const sc = scores[uid]?.[m.id];
+    if (!sc) continue;
+    if (sc.correct === true) {
+      streak++;
+      if (streak === 2) bonus += 20000;
+      else if (streak === 3) bonus += 30000;
+      else if (streak >= 4) bonus += 40000;
+    } else streak = 0;
+  }
+  return bonus;
+}
+// Trang trí tên: ưu tiên skin con giáp (màu + hình), cộng thêm ⭐ nếu có Ngôi sao
+function starWrap(uid, name) {
+  const sk = activeSkin(uid);
+  const star = hasStar(uid) ? '⭐' : '';
+  if (sk) {
+    return `<span style="color:${sk.color};font-weight:900;text-shadow:0 0 8px ${sk.color}80">${sk.emoji}${star}${name}</span>`;
+  }
+  if (star) return `<span class="star-name">⭐${name}</span>`;
+  return name;
+}
+// Trúng nếu tỷ số chính HOẶC tỷ số dự phòng khớp kết quả
+function predHits(matchId, uid, actual) {
+  const p1 = getEffectivePred(matchId, uid);
+  const p2 = getPred2(matchId, uid);
+  return (p1 === actual) || (!!p2 && p2 === actual);
+}
+// "Hoạt động" = đã nhập ÍT NHẤT 1 dự đoán ở vòng loại trực tiếp (trận 73-104).
+// Ai chưa bắt đầu nhập knockout → tài khoản bị ĐÓNG BĂNG: KHÔNG bị tính auto 5-5.
+function isUserActive(uid) { return MATCHES.some(m => predictions[m.id]?.[uid]); }
+function getEffectivePred(matchId, uid) {
+  const p = getPred(matchId, uid);
+  if (p) return p;
+  if (isLocked(MATCHES.find(m=>m.id===matchId)) && isUserActive(uid)) return DEFAULT_SCORE;
+  return null;
+}
+function fmtPts(n) {
+  const sign = n >= 0 ? '+' : '';
+  return sign + n.toLocaleString('vi-VN');
+}
+function fmtKickoffVN(utcStr) {
+  const d = new Date(new Date(utcStr).getTime() + 7*3600*1000);
+  const hh = String(d.getUTCHours()).padStart(2,'0');
+  const mm = String(d.getUTCMinutes()).padStart(2,'0');
+  const day = d.getUTCDate(), month = d.getUTCMonth()+1;
+  const days = ['CN','T2','T3','T4','T5','T6','T7'];
+  return `${days[d.getUTCDay()]} ${day}/${month} lúc ${hh}:${mm}`;
+}
+function fmtDate(dateStr) {
+  const d = new Date(dateStr + 'T00:00:00+07:00');
+  return d.toLocaleDateString('vi-VN', {weekday:'short', day:'numeric', month:'numeric'});
+}
+
+// ── KNOCKOUT BRACKET – tự động đẩy đội vào vòng sau ──
+// Đội thắng (90 phút; nếu hoà thì theo lựa chọn pen của admin)
+function koWinner(id, resolved) {
+  const res = results[id];
+  if (!res) return null;
+  const t = resolved[id];
+  if (!t || !t.team1 || !t.team2) return null;
+  const [a,b] = res.split('-').map(Number);
+  if (a > b) return t.team1;
+  if (b > a) return t.team2;
+  const adv = advances[id];          // hoà → cần admin chọn đội đi tiếp
+  if (adv === '2' || adv === 2) return t.team2;
+  if (adv === '1' || adv === 1) return t.team1;
+  return null;
+}
+function koLoser(id, resolved) {
+  const w = koWinner(id, resolved);
+  if (!w) return null;
+  const t = resolved[id];
+  return w === t.team1 ? t.team2 : t.team1;
+}
+// Tính toàn bộ đội của 32 trận từ results + advances (id tăng dần nên vòng sau luôn tính được)
+function resolveTeams() {
+  const resolved = {};
+  for (const m of MATCHES) {
+    if (m.team1 || m.team2) { resolved[m.id] = {team1: m.team1 || null, team2: m.team2 || null}; continue; }
+    const t1 = m.s1 ? (m.s1.t === 'W' ? koWinner(m.s1.m, resolved) : koLoser(m.s1.m, resolved)) : null;
+    const t2 = m.s2 ? (m.s2.t === 'W' ? koWinner(m.s2.m, resolved) : koLoser(m.s2.m, resolved)) : null;
+    resolved[m.id] = {team1: t1, team2: t2};
+  }
+  return resolved;
+}
+function teamsResolved(m, resolved) {
+  const rt = resolved[m.id];
+  return !!(rt && rt.team1 && rt.team2);
+}
+// Nhãn placeholder khi chưa biết đội: "Thắng trận 5" / "Thua trận 29"
+function srcLabel(s) {
+  if (!s) return '???';
+  const verb = s.t === 'W' ? 'Thắng' : 'Thua';
+  return `${verb} trận ${s.m - 72}`;
+}
+function dispTeam(m, slot, resolved) {
+  const rt = resolved[m.id] || {};
+  const fixed = slot === 1 ? m.team1 : m.team2;
+  const val = slot === 1 ? rt.team1 : rt.team2;
+  if (val) return {name: val, tbd: false};
+  if (fixed) return {name: fixed, tbd: false};
+  return {name: srcLabel(slot === 1 ? m.s1 : m.s2), tbd: true};
+}
+// Ghi chú đá luân lưu khi hoà
+function penaltyNote(m, resolved) {
+  const res = results[m.id]; if (!res) return '';
+  const [a,b] = res.split('-').map(Number);
+  if (a !== b) return '';
+  const w = koWinner(m.id, resolved);
+  return w ? ` · ${w} thắng pen` : ' · hoà';
+}
+
+// ── NHÀ VÔ ĐỊCH ──
+// Đội đã bị loại = thua ở bất kỳ trận knockout đã có kết quả
+function eliminatedTeams() {
+  const resolved = resolveTeams();
+  const out = new Set();
+  for (const m of MATCHES) {
+    if (!results[m.id]) continue;
+    const loser = koLoser(m.id, resolved);
+    if (loser) out.add(loser);
+  }
+  return out;
+}
+// 32 đội vòng 1/16 (lấy từ team1/team2 các trận R32)
+function r32Teams() {
+  const set = [];
+  MATCHES.filter(m => m.round === 'Vòng 1/16').forEach(m => { if (m.team1) set.push(m.team1); if (m.team2) set.push(m.team2); });
+  return set;
+}
+// Đội còn quyền vô địch = R32 trừ đội đã bị loại
+function aliveChampTeams() {
+  const elim = eliminatedTeams();
+  return r32Teams().filter(t => !elim.has(t));
+}
+// Hạn chốt theo vòng = giờ bắt đầu trận cuối cùng của vòng đó
+function champDeadlineByRound(round) {
+  const ks = MATCHES.filter(m => m.round === round).map(m => new Date(m.kickoff).getTime());
+  return new Date(Math.max(...ks));
+}
+function champDeadline1() { return champDeadlineByRound('Vòng 1/16'); } // hạn lần cược 1
+function champDeadline2() { return champDeadlineByRound('Vòng 1/8');  } // hạn lần cược 2
+// Giai đoạn cược hiện tại: 1 (trước hạn 1) | 2 (sau hạn 1, trước hạn 2) | 0 (đã đóng)
+function champPhase() {
+  const now = new Date();
+  if (now < champDeadline1()) return 1;
+  if (now < champDeadline2()) return 2;
+  return 0;
+}
+function canBetChamp() { return champPhase() > 0; }
+// Slot có thể cược lúc này cho user: '0' (lần 1) / '1' (lần 2) / null (không thể)
+function champOpenSlot(uid) {
+  const ph = champPhase();
+  if (ph === 0) return null;
+  const slot = ph === 1 ? '0' : '1';
+  const c = champBets[uid] || {};
+  if (c.team) return null;        // dữ liệu cũ (1 cược) → coi như đã cược
+  return c[slot] ? null : slot;   // null nếu đã cược lần này rồi
+}
+// Nhà vô địch: ưu tiên admin nhập, nếu không thì lấy đội thắng chung kết (trận 104)
+function getChampion() { return championWinner || koWinner(104, resolveTeams()); }
+
+// ── JACKPOT: tham gia 1 chạm, admin chọn người quay, quay ra người thắng ──
+const JACKPOT_FEE = 5000;
+const JACKPOT_TAX = 0.05; // người thắng đóng 5% thuế lại cho quỹ
+function jpParticipants(mid) {  // danh sách uid đã tham gia & được duyệt (sắp xếp theo tên)
+  const e = jackpots[mid] || {};
+  return Object.keys(e).filter(uid => e[uid] && users[uid]?.approved)
+    .sort((a, b) => (users[a]?.name || '').localeCompare(users[b]?.name || '', 'vi'));
+}
+function jpCount(mid) { return jpParticipants(mid).length; }
+function jpPool(mid)  { return jpCount(mid) * JACKPOT_FEE; }
+function jpJoined(uid, mid) { return !!jackpots[mid]?.[uid]; }
+function jpSpinnerOf(mid) { return jpSpinner[mid] || null; }
+function jpWinnerOf(mid)  { return jpWinner[mid] || null; }
+function jpEnabledFor(mid) { return jpEnabled[mid] !== false; } // mặc định MỞ; admin set false để TẮT
+// Phần thưởng thực nhận của người thắng (sau 5% thuế)
+function jpShare(mid) { return Math.round(jpPool(mid) * (1 - JACKPOT_TAX)); }
+// Tổng lời/lỗ jackpot của 1 user
+function jackpotNet(uid) {
+  let net = 0;
+  for (const mid of Object.keys(jackpots)) {
+    if (!jpJoined(uid, mid)) continue;
+    net -= JACKPOT_FEE;                          // phí tham gia
+    if (jpWinnerOf(mid) === uid) net += jpShare(mid); // trúng → ăn hũ (đã trừ thuế)
+  }
+  return net;
+}
+function joinedAnyJackpot(uid) { return Object.keys(jackpots).some(mid => jpJoined(uid, mid)); }
+// Danh sách cược vô địch của 1 người (tối đa 2 lần, riêng lẻ)
+const CHAMP_MAX_BETS = 2;
+function userBets(uid) {
+  const c = champBets[uid];
+  if (!c) return [];
+  if (c.team) return [c]; // tương thích dữ liệu cũ (1 cược)
+  return Object.values(c).filter(b => b && b.team);
+}
+
+// ══════════════════════════════════════════════
+//  FIREBASE
+// ══════════════════════════════════════════════
+function initFirebase() {
+  try {
+    firebase.initializeApp(FIREBASE_CONFIG);
+    db = firebase.database();
+    firebaseOK = true;
+    db.ref(`${DB}/users`).on('value', s => { users = s.val() || {}; onDataUpdate(); });
+    db.ref(`${DB}/predictions`).on('value', s => { predictions = s.val() || {}; onDataUpdate(); });
+    db.ref(`${DB}/predictions2`).on('value', s => { predictions2 = s.val() || {}; onDataUpdate(); });
+    db.ref(`${DB}/results`).on('value', s => { results = s.val() || {}; onDataUpdate(); });
+    db.ref(`${DB}/scores`).on('value', s => { scores = s.val() || {}; onDataUpdate(); });
+    db.ref(`${DB}/advance`).on('value', s => { advances = s.val() || {}; onDataUpdate(); });
+    db.ref(`${DB}/shop`).on('value', s => { shop = s.val() || {}; onDataUpdate(); });
+    db.ref(`${DB}/champ`).on('value', s => { champBets = s.val() || {}; onDataUpdate(); });
+    db.ref(`${DB}/oddsConfig`).on('value', s => { oddsCfg = s.val() || {correct:50000, wrong:10000}; onDataUpdate(); });
+    db.ref(`${DB}/matchOdds`).on('value', s => { matchOdds = s.val() || {}; onDataUpdate(); });
+    db.ref(`${DB}/championWinner`).on('value', s => { championWinner = s.val() || ''; onDataUpdate(); });
+    db.ref(`${DB}/jackpot`).on('value', s => { jackpots = s.val() || {}; onDataUpdate(); });
+    db.ref(`${DB}/jpSpinner`).on('value', s => { jpSpinner = s.val() || {}; onDataUpdate(); });
+    db.ref(`${DB}/jpWinner`).on('value', s => { jpWinner = s.val() || {}; onDataUpdate(); });
+    db.ref(`${DB}/jpEnabled`).on('value', s => { jpEnabled = s.val() || {}; onDataUpdate(); });
+  } catch(e) { showToast('⚠️ Lỗi kết nối Firebase'); }
+}
+function onDataUpdate() {
+  renderPlayerPicker();
+  renderCurrentView();
+  renderWinnerBanner();
+}
+
+// Vinh danh người đoán trúng trận gần nhất (chạy ngang cho mọi user thấy)
+function renderWinnerBanner() {
+  const banner = document.getElementById('winner-banner');
+  if (!banner) return;
+  if (!currentUser) { banner.classList.remove('show'); return; }
+  const resolved = resolveTeams();
+
+  // Các trận đã có kết quả, sắp xếp mới nhất trước (theo giờ thi đấu)
+  const withResult = MATCHES
+    .filter(m => results[m.id])
+    .sort((a, b) => new Date(b.kickoff) - new Date(a.kickoff));
+
+  const msgs = [];
+
+  // (1) Người đoán trúng tỷ số trận gần nhất
+  let chosen = null, winners = [];
+  for (const m of withResult) {
+    const ws = Object.entries(users)
+      .filter(([uid, u]) => u.approved && scores[uid]?.[m.id]?.correct)
+      .map(([, u]) => u.name);
+    if (ws.length) { chosen = m; winners = ws; break; }
+  }
+  if (chosen) {
+    const rt = resolved[chosen.id] || {};
+    msgs.push(`🎉 Chúc mừng <b>${winners.join(', ')}</b> đã đoán trúng tỷ số ${results[chosen.id]} trận ${rt.team1||''} vs ${rt.team2||''}! 🏆 Mang tiền về cho mẹ nhé!`);
+  }
+
+  // (2) Người thắng Jackpot (đã quay xong)
+  MATCHES.filter(m => jpWinnerOf(m.id))
+    .sort((a, b) => new Date(b.kickoff) - new Date(a.kickoff))
+    .slice(0, 3)
+    .forEach(m => {
+      const wUid = jpWinnerOf(m.id);
+      const rt = resolved[m.id] || {};
+      msgs.push(`💰 <b>${users[wUid]?.name || '?'}</b> trúng hũ Jackpot trận ${rt.team1||''} vs ${rt.team2||''} (+${jpShare(m.id).toLocaleString('vi-VN')}đ)! 🤑`);
+    });
+
+  if (!msgs.length) { banner.classList.remove('show'); return; }
+  banner.innerHTML = `<div class="wb-track">${msgs.join('　•　')}</div>`;
+  banner.classList.add('show');
+}
+async function fbSet(path, val) {
+  if (firebaseOK) await db.ref(path).set(val);
+}
+async function fbPush(path, val) {
+  if (firebaseOK) return db.ref(path).push(val);
+}
+
+// ══════════════════════════════════════════════
+//  AUTH – PLAYER PICKER
+// ══════════════════════════════════════════════
+function getInitials(name) {
+  const parts = name.trim().split(' ');
+  if (parts.length === 1) return parts[0][0].toUpperCase();
+  return parts[parts.length - 1][0].toUpperCase();
+}
+
+function renderPlayerPicker() {
+  const grid = document.getElementById('player-grid');
+  if (!grid) return;
+
+  const approved = Object.entries(users).filter(([,u]) => u.approved && !u.rejected);
+  const pending  = Object.entries(users).filter(([,u]) => !u.approved && !u.rejected);
+
+  // Nút "Thêm tài khoản" đưa LÊN ĐẦU để người mới dễ tìm
+  let html = `
+    <div class="register-tile" onclick="showRegister()">
+      <div class="plus">＋</div>
+      <div class="tile-name">Thêm tài khoản</div>
+    </div>
+  `;
+
+  html += approved.map(([uid, u]) => `
+    <div class="player-tile approved" onclick="openPwdModal('${uid}')">
+      <div class="avatar">${getInitials(u.name)}</div>
+      <div class="tile-name">${starWrap(uid, u.name)}</div>
+      <div class="tile-status ok">▶ Vào chơi</div>
+    </div>
+  `).join('');
+
+  html += pending.map(([uid, u]) => `
+    <div class="player-tile pending">
+      <div class="avatar">⏳</div>
+      <div class="tile-name">${u.name}</div>
+      <div class="tile-status wait">Chờ duyệt</div>
+    </div>
+  `).join('');
+
+  grid.innerHTML = html;
+}
+
+function showRegister() {
+  document.getElementById('picker-wrap').style.display = 'none';
+  document.getElementById('register-wrap').style.display = 'block';
+  document.getElementById('reg-name').focus();
+}
+
+function showPicker() {
+  document.getElementById('register-wrap').style.display = 'none';
+  document.getElementById('picker-wrap').style.display = 'block';
+}
+
+// Password modal
+let loginTargetUid = null;
+function openPwdModal(uid) {
+  const u = users[uid];
+  if (!u) return;
+  loginTargetUid = uid;
+  document.getElementById('pm-avatar').textContent = getInitials(u.name);
+  document.getElementById('pm-name').textContent = u.name;
+  document.getElementById('pwd-modal-input').value = '';
+  document.getElementById('pwd-error').textContent = '';
+  document.getElementById('pwd-modal-overlay').classList.add('open');
+  setTimeout(() => document.getElementById('pwd-modal-input').focus(), 100);
+}
+function closePwdModal(e) {
+  if (e && e.type === 'click' && e.target !== document.getElementById('pwd-modal-overlay')) return;
+  document.getElementById('pwd-modal-overlay').classList.remove('open');
+  loginTargetUid = null;
+}
+async function doPwdLogin() {
+  if (!loginTargetUid) return;
+  const pwd = document.getElementById('pwd-modal-input').value;
+  if (!pwd) { document.getElementById('pwd-error').textContent = 'Vui lòng nhập mật khẩu'; return; }
+  const u = users[loginTargetUid];
+  const hash = await hashPwd(pwd);
+  if (hash !== u.pwHash) {
+    document.getElementById('pwd-error').textContent = '❌ Sai mật khẩu';
+    document.getElementById('pwd-modal-input').value = '';
+    document.getElementById('pwd-modal-input').focus();
+    return;
+  }
+  document.getElementById('pwd-modal-overlay').classList.remove('open');
+  currentUser = {id: loginTargetUid, name: u.name, approved: true};
+  localStorage.setItem('mg_userId', loginTargetUid);
+  enterApp();
+}
+
+async function doRegister() {
+  const name = document.getElementById('reg-name').value.trim();
+  const pwd  = document.getElementById('reg-pwd').value;
+  const pwd2 = document.getElementById('reg-pwd2').value;
+  if (!name || name.length < 2) { showToast('Vui lòng nhập họ tên đầy đủ'); return; }
+  if (pwd.length < 4) { showToast('Mật khẩu tối thiểu 4 ký tự'); return; }
+  if (pwd !== pwd2) { showToast('Mật khẩu không khớp'); return; }
+  if (!firebaseOK) { showToast('⚠️ Chưa kết nối được Firebase. Kiểm tra mạng và thử lại.'); return; }
+  const existing = Object.values(users).find(u => u.name.toLowerCase() === name.toLowerCase());
+  if (existing) { showToast('Tên này đã được đăng ký rồi'); return; }
+
+  const btn = document.querySelector('#register-wrap .btn-primary');
+  btn.textContent = 'Đang gửi...'; btn.disabled = true;
+
+  try {
+    const pwHash = await hashPwd(pwd);
+    await fbPush(`${DB}/users`, {name, pwHash, approved: false, createdAt: Date.now()});
+    showToast('✅ Đã gửi! Chờ admin duyệt nhé');
+    document.getElementById('reg-name').value = '';
+    document.getElementById('reg-pwd').value = '';
+    document.getElementById('reg-pwd2').value = '';
+    showPicker();
+  } catch(e) {
+    showToast('❌ Lỗi: ' + (e.message || 'Không gửi được. Kiểm tra kết nối.'));
+    console.error(e);
+  } finally {
+    btn.textContent = '✅ Gửi đăng ký'; btn.disabled = false;
+  }
+}
+
+function enterApp() {
+  document.getElementById('user-badge').textContent = currentUser.name;
+  document.getElementById('user-badge').style.display = 'block';
+  document.getElementById('bottom-nav').classList.add('show');
+  showView('matches');
+  renderWinnerBanner();
+  if (!promoShown) { promoShown = true; setTimeout(showPromo, 600); }
+}
+
+// ── POPUP QUẢNG CÁO VẬT PHẨM ──
+let promoShown = false;
+function showPromo() {
+  if (!currentUser) return;
+  document.getElementById('promo-overlay').classList.add('open');
+}
+function closePromo(e) {
+  if (e && e.type === 'click' && e.target !== document.getElementById('promo-overlay')) return;
+  document.getElementById('promo-overlay').classList.remove('open');
+}
+function goShopFromPromo() {
+  document.getElementById('promo-overlay').classList.remove('open');
+  showView('shop');
+}
+function goChampFromPromo() {
+  document.getElementById('promo-overlay').classList.remove('open');
+  showView('champ');
+}
+
+function logoutPrompt() {
+  if (confirm(`Đăng xuất tài khoản "${currentUser?.name}"?`)) {
+    currentUser = null;
+    localStorage.removeItem('mg_userId');
+    document.getElementById('user-badge').style.display = 'none';
+    document.getElementById('bottom-nav').classList.remove('show');
+    document.getElementById('winner-banner').classList.remove('show');
+    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+    document.getElementById('view-auth').classList.add('active');
+    showPicker();
+  }
+}
+
+// ══════════════════════════════════════════════
+//  NAVIGATION
+// ══════════════════════════════════════════════
+function showView(name) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.getElementById('view-' + name).classList.add('active');
+  document.querySelectorAll('#bottom-nav button').forEach(b => b.classList.remove('active'));
+  document.getElementById('nav-' + name)?.classList.add('active');
+  if (name === 'matches')     renderMatches();
+  if (name === 'champ')       renderChamp();
+  if (name === 'leaderboard') renderLeaderboard();
+  if (name === 'shop')        renderShop();
+  if (name === 'admin')       renderAdminUsers();
+}
+function renderCurrentView() {
+  const a = document.querySelector('.view.active');
+  if (!a) return;
+  if (a.id === 'view-matches')     renderMatches();
+  if (a.id === 'view-champ')       renderChamp();
+  if (a.id === 'view-leaderboard') renderLeaderboard();
+  if (a.id === 'view-shop')        renderShop();
+  if (a.id === 'view-admin' && isAdmin) { renderAdminUsers(); renderAdminPreds(); }
+}
+
+// ══════════════════════════════════════════════
+//  MATCHES
+// ══════════════════════════════════════════════
+let showAllResults = false;
+
+function toggleShowAll() {
+  showAllResults = !showAllResults;
+  const btn = document.getElementById('btn-show-all');
+  if (btn) btn.textContent = showAllResults ? 'Ẩn trận thua' : 'Hiển thị tất cả';
+  renderMatches();
+}
+
+function isUserWon(matchId) {
+  const sc = scores[currentUser?.id]?.[matchId];
+  return !!(sc && sc.correct === true);
+}
+
+function setFilter(el, f) {
+  document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  currentFilter = f;
+  renderMatches();
+}
+function renderMatches() {
+  if (!currentUser) return;
+  const resolved = resolveTeams();
+  let list = MATCHES;
+  if (currentFilter === 'open')    list = MATCHES.filter(m => teamsResolved(m,resolved) && !isLocked(m) && !results[m.id]);
+  if (currentFilter === 'pending') list = MATCHES.filter(m => teamsResolved(m,resolved) && !isLocked(m) && !getPred(m.id, currentUser.id));
+  if (currentFilter === 'done')    list = MATCHES.filter(m => results[m.id]);
+
+  // Ẩn trận đã có kết quả mà đoán sai (trừ khi bật showAllResults)
+  if (!showAllResults) {
+    list = list.filter(m => {
+      if (!results[m.id]) return true; // chưa có kết quả → hiện
+      return isUserWon(m.id);          // có kết quả → chỉ hiện nếu thắng
+    });
+  }
+
+  const lostCount = MATCHES.filter(m => results[m.id] && !isUserWon(m.id)).length;
+
+  // Gom theo vòng (giữ thứ tự id)
+  const byRound = {}; const order = [];
+  list.forEach(m => { if (!byRound[m.round]) { byRound[m.round] = []; order.push(m.round); } byRound[m.round].push(m); });
+
+  const el = document.getElementById('matches-list');
+
+  // Nút hiển thị tất cả
+  const btnHtml = lostCount > 0 ? `
+    <div style="text-align:center;margin:12px 0">
+      <button id="btn-show-all" onclick="toggleShowAll()"
+        style="background:none;border:1px solid var(--border);border-radius:20px;
+               color:var(--text2);font-size:12px;font-weight:700;padding:6px 16px;cursor:pointer">
+        ${showAllResults ? 'Ẩn trận thua' : `Hiển thị tất cả (${lostCount} trận thua)`}
+      </button>
+    </div>` : '';
+
+  if (!list.length && !lostCount) { el.innerHTML = '<p class="empty-msg">Không có trận nào</p>'; return; }
+
+  const matchesHtml = list.length
+    ? order.map(r => `
+        <div class="date-label">${r}</div>
+        ${byRound[r].map(m => renderMatchCard(m, resolved)).join('')}
+      `).join('')
+    : '<p class="empty-msg" style="padding:20px 0">Chưa có trận thắng nào</p>';
+
+  el.innerHTML = matchesHtml + btnHtml;
+}
+function renderMatchCard(m, resolved) {
+  const ready  = teamsResolved(m, resolved);
+  const d1 = dispTeam(m, 1, resolved);
+  const d2 = dispTeam(m, 2, resolved);
+  const locked = isLocked(m);
+  const hasResult = results[m.id];
+  const predictable = ready && !locked;
+  const myPred = getPred(m.id, currentUser.id);
+  const myPred2 = getPred2(m.id, currentUser.id);
+  const effPred = getEffectivePred(m.id, currentUser.id);
+  const bk = (myPred2 ? ' / ' + myPred2 : '') + (x2UsedOn(currentUser.id, m.id) ? ' ⚡x2' : '');   // dự phòng (❤️) + x2
+  const approvedUsers = Object.entries(users).filter(([,u]) => u.approved && !u.rejected);
+  const predCount = approvedUsers.filter(([uid]) => getPred(m.id, uid)).length;
+  const approvedCount = approvedUsers.length;
+  const mag = hasMagnifier(currentUser.id); // kính lúp → xem tỷ số mọi người
+
+  let statusHtml, predHtml = '';
+
+  if (hasResult) {
+    const noScore = NO_SCORE_MATCHES.includes(m.id) ? ' · không tính điểm' : '';
+    statusHtml = `<span class="match-status done">${hasResult}${penaltyNote(m, resolved)}${noScore}</span>`;
+    if (effPred) {
+      const sc = scores[currentUser.id]?.[m.id];
+      const ok = sc ? sc.correct === true : false;
+      const ptsTxt = sc ? `<span class="${ok?'ok':'no'}">${fmtPts(sc.points)}đ</span>` : '';
+      predHtml = `<span class="my-pred">Tôi: <span class="sc">${effPred}${bk}</span> ${ptsTxt}${!myPred?' <em style="font-size:10px;color:var(--text2)">(auto)</em>':''}</span>`;
+    }
+  } else if (!ready) {
+    statusHtml = `<span class="match-status locked">Chờ đội</span>`;
+  } else if (locked) {
+    statusHtml = `<span class="match-status locked">Hết giờ</span>`;
+    if (effPred) predHtml = `<span class="my-pred">Tôi: <span class="sc">${effPred}${bk}</span>${!myPred?' <em style="font-size:10px;color:var(--text2)">(auto)</em>':''}</span>`;
+  } else {
+    statusHtml = `<span class="match-status open">${fmtKickoffVN(m.kickoff)}</span>`;
+    predHtml = myPred
+      ? `<span class="my-pred">Tôi: <span class="sc">${myPred}${bk}</span></span>`
+      : `<span class="my-pred" style="color:var(--accent2)">Chưa đoán</span>`;
+  }
+
+  const predCountHtml = `<span class="pred-count" onclick="togglePreds(event,${m.id})">${predCount}/${approvedCount}</span>`;
+
+  // Phân bố tỷ số (chỉ khi có Kính lúp)
+  let distHtml = '';
+  if (mag) {
+    const dist = {};
+    approvedUsers.forEach(([uid]) => { const p = getPred(m.id, uid); if (p) dist[p] = (dist[p]||0)+1; });
+    const entries = Object.entries(dist).sort((a,b) => b[1]-a[1]);
+    if (entries.length) distHtml = `<div class="score-dist">${entries.map(([s,c]) => `<span class="sd">${c}× ${s}</span>`).join('')}</div>`;
+  }
+  // Danh sách người được duyệt. Có Kính lúp (hoặc của chính mình) → hiện tỷ số.
+  const predListHtml = `<div class="predictor-list" id="plist-${m.id}" style="display:none;flex-direction:column;align-items:flex-start">
+    ${distHtml}
+    <div style="display:flex;flex-wrap:wrap;gap:6px">
+    ${approvedUsers.map(([uid, u]) => {
+      const p = getPred(m.id, uid);
+      const p2 = getPred2(m.id, uid);
+      const isMe = uid === currentUser.id;
+      let chipClass = 'predictor-chip';
+      if (isMe) chipClass += ' me';
+      else if (p) chipClass += ' done';
+      else if (predictable) chipClass += ' missing';
+      const showScore = (mag || isMe) && p;
+      const scoreTxt = showScore ? `<span class="pc-score">${p}${p2?' / '+p2:''}</span>` : '';
+      return `<span class="${chipClass}">${starWrap(uid, u.name)}${scoreTxt}</span>`;
+    }).join('')}
+    ${approvedUsers.length===0?'<span style="color:var(--text2);font-size:12px">Chưa có ai</span>':''}
+    </div>
+    ${!mag?'<div style="font-size:11px;color:var(--text2);margin-top:8px">🔍 Mua <b>Kính lúp</b> ở mục Vật phẩm để xem tỷ số của mọi người</div>':''}
+  </div>`;
+
+  return `
+    <div class="match-card ${predictable?'':'locked'} ${hasResult?'has-result':''}" ${predictable?`onclick="openModal(${m.id})"`:''}>
+      <span class="group-badge">Trận ${m.id-72}</span>
+      <div class="match-teams">
+        <span class="team-name left ${d1.tbd?'tbd':''}">${d1.name}</span>
+        <span class="vs">VS</span>
+        <span class="team-name right ${d2.tbd?'tbd':''}">${d2.name}</span>
+      </div>
+      <div class="match-meta">
+        ${statusHtml}
+        <div style="display:flex;align-items:center;gap:8px">${predCountHtml}${predHtml}</div>
+      </div>
+      ${ready ? jpMatchCardHtml(m) : ''}
+      ${predListHtml}
+    </div>
+  `;
+}
+// Khu Jackpot trên thẻ trận
+function jpMatchCardHtml(m) {
+  const me = currentUser.id;
+  const joined = jpJoined(me, m.id);
+  const count = jpCount(m.id), pool = jpPool(m.id);
+  const winner = jpWinnerOf(m.id);
+  const spinner = jpSpinnerOf(m.id);
+
+  // Đã có người thắng → công bố
+  if (winner) {
+    const iWon = winner === me;
+    return `<div class="jp-result">💰 Jackpot · ${count} người · hũ ${pool.toLocaleString('vi-VN')}đ
+      <div style="margin-top:3px;color:var(--gold);font-weight:800">🏆 ${starWrap(winner, users[winner]?.name||'?')} · +${jpShare(m.id).toLocaleString('vi-VN')}đ ${iWon?'— BẠN THẮNG! 🎉':''}</div></div>`;
+  }
+  // Đã khoá, chưa quay
+  if (isLocked(m)) {
+    if (!count) return '';
+    // CHỈ quay được sau khi admin đã nhập KẾT QUẢ trận
+    if (!results[m.id]) {
+      return `<div class="jp-result" style="color:var(--text2)">💰 Jackpot · ${count} người · hũ ${pool.toLocaleString('vi-VN')}đ · chờ nhập kết quả trận${joined?' · bạn đã tham gia':''}</div>`;
+    }
+    if (!spinner) {
+      return `<div class="jp-result" style="color:var(--text2)">💰 Jackpot · ${count} người · hũ ${pool.toLocaleString('vi-VN')}đ · chờ admin chọn người quay${joined?' · bạn đã tham gia':''}</div>`;
+    }
+    if (spinner === me) {
+      return `<button class="jp-match-btn" onclick="event.stopPropagation(); openJpSpin(${m.id})">🎰 BẠN ĐƯỢC QUAY JACKPOT! Quay ngay (hũ ${pool.toLocaleString('vi-VN')}đ)</button>`;
+    }
+    return `<div class="jp-result" style="color:var(--text2)">💰 Jackpot · ${count} người · hũ ${pool.toLocaleString('vi-VN')}đ · chờ <b>${users[spinner]?.name||'?'}</b> quay${joined?' · bạn đã tham gia':''}</div>`;
+  }
+  // Còn mở → nút tham gia (1 chạm)
+  if (joined) {
+    return `<div class="jp-result" style="color:var(--green)">💰 Đã tham gia Jackpot · ${count} người · hũ ${pool.toLocaleString('vi-VN')}đ</div>`;
+  }
+  if (!jpEnabledFor(m.id)) return ''; // admin đã TẮT jackpot cho trận này
+  return `<button class="jp-match-btn" onclick="event.stopPropagation(); joinJackpot(${m.id})">💰 THAM GIA JACKPOT ${JACKPOT_FEE.toLocaleString('vi-VN')}đ${pool>0?` · hũ ${pool.toLocaleString('vi-VN')}đ`:''}</button>`;
+}
+function togglePreds(e, id) {
+  e.stopPropagation();
+  const el = document.getElementById('plist-' + id);
+  if (el) el.style.display = el.style.display==='none' ? 'flex' : 'none';
+}
+
+// ══════════════════════════════════════════════
+//  PREDICT MODAL
+// ══════════════════════════════════════════════
+let useHeartThisSubmit = false; // đang kích hoạt trái tim cho lần lưu này
+let useX2ThisSubmit = false;    // đang kích hoạt x2 cho lần lưu này
+function openModal(matchId) {
+  const resolved = resolveTeams();
+  const m = MATCHES.find(x=>x.id===matchId);
+  if (!m) return;
+  if (!teamsResolved(m, resolved)) { showToast('⏳ Chưa xác định đủ 2 đội của trận này'); return; }
+  if (isLocked(m)) return;
+  activeMatchId = matchId;
+  const rt = resolved[m.id];
+  document.getElementById('modal-title').textContent = `${rt.team1} vs ${rt.team2}`;
+  document.getElementById('modal-sub').textContent = `${m.round} · ${fmtKickoffVN(m.kickoff)}`;
+  const ex = getPred(matchId, currentUser.id);
+  const [g1,g2] = ex ? ex.split('-') : ['0','0'];
+  document.getElementById('pred1').value = g1;
+  document.getElementById('pred2').value = g2;
+  // Hiển thị tỷ lệ điểm hiện tại
+  document.getElementById('ko-note').textContent =
+    `⚽ Chỉ tính tỷ số 90 phút chính thức · Đoán đúng +${curCorrect().toLocaleString('vi-VN')}đ`;
+  document.getElementById('x2-active').textContent = `⚡ ĐANG DÙNG x2 — đoán đúng ăn đôi +${(curCorrect()*2).toLocaleString('vi-VN')}đ`;
+
+  // ── Trái tim: tỷ số dự phòng ──
+  useHeartThisSubmit = false;
+  const me = currentUser.id;
+  const used = heartUsedOn(me, matchId);
+  const avail = heartsOf(me);
+  const heartBtn = document.getElementById('heart-btn');
+  const backupWrap = document.getElementById('backup-wrap');
+  const exB = getPred2(matchId, me);
+  const [b1,b2] = exB ? exB.split('-') : ['0','0'];
+  document.getElementById('predB1').value = b1;
+  document.getElementById('predB2').value = b2;
+  if (used) {                       // đã dùng trái tim ở trận này → cho sửa tỷ số dự phòng
+    backupWrap.style.display = 'block';
+    heartBtn.style.display = 'none';
+  } else if (avail > 0) {           // còn trái tim → cho phép kích hoạt
+    backupWrap.style.display = 'none';
+    heartBtn.style.display = 'block';
+    heartBtn.textContent = `❤️ Dùng Trái tim: thêm 1 tỷ số dự phòng (còn ${avail})`;
+  } else {                          // không có trái tim
+    backupWrap.style.display = 'none';
+    heartBtn.style.display = 'none';
+  }
+
+  // ── x2: nhân đôi thưởng ──
+  useX2ThisSubmit = false;
+  const x2used = x2UsedOn(me, matchId);
+  const x2avail = x2Of(me);
+  const x2Btn = document.getElementById('x2-btn');
+  const x2Active = document.getElementById('x2-active');
+  if (x2used) {
+    x2Active.style.display = 'block';
+    x2Btn.style.display = 'none';
+  } else if (x2avail > 0) {
+    x2Active.style.display = 'none';
+    x2Btn.style.display = 'block';
+    x2Btn.textContent = `⚡ Dùng x2: đoán đúng ăn đôi +${(curCorrect()*2).toLocaleString('vi-VN')}đ (còn ${x2avail})`;
+  } else {
+    x2Active.style.display = 'none';
+    x2Btn.style.display = 'none';
+  }
+
+  document.getElementById('modal-overlay').classList.add('open');
+}
+function activateHeart() {
+  useHeartThisSubmit = true;
+  document.getElementById('backup-wrap').style.display = 'block';
+  document.getElementById('heart-btn').style.display = 'none';
+  showToast('❤️ Nhập tỷ số dự phòng rồi bấm Xác nhận');
+}
+function activateX2() {
+  useX2ThisSubmit = true;
+  document.getElementById('x2-active').style.display = 'block';
+  document.getElementById('x2-btn').style.display = 'none';
+  showToast('⚡ Đã bật x2! Đoán đúng ăn đôi 100.000đ');
+}
+function closeModal(e) {
+  if (e && e.type === 'click' && e.target !== document.getElementById('modal-overlay')) return;
+  document.getElementById('modal-overlay').classList.remove('open');
+  activeMatchId = null;
+  useHeartThisSubmit = false;
+  useX2ThisSubmit = false;
+}
+async function submitPred() {
+  if (!currentUser || !activeMatchId) return;
+  const m = MATCHES.find(x=>x.id===activeMatchId);
+  if (!m || isLocked(m)) return;
+  const me = currentUser.id;
+  const mid = activeMatchId;
+  const s1 = parseInt(document.getElementById('pred1').value)||0;
+  const s2 = parseInt(document.getElementById('pred2').value)||0;
+  const score = `${s1}-${s2}`;
+  await fbSet(`${DB}/predictions/${mid}/${me}`, score);
+
+  // Trái tim: lưu tỷ số dự phòng (nếu đang dùng hoặc đã từng dùng ở trận này)
+  let extra = '';
+  if (useHeartThisSubmit || heartUsedOn(me, mid)) {
+    const b1 = parseInt(document.getElementById('predB1').value)||0;
+    const b2 = parseInt(document.getElementById('predB2').value)||0;
+    await fbSet(`${DB}/predictions2/${mid}/${me}`, `${b1}-${b2}`);
+    if (useHeartThisSubmit && !heartUsedOn(me, mid)) {
+      // tiêu 1 trái tim
+      await fbSet(`${DB}/shop/${me}/heartMatches/${mid}`, true);
+      await fbSet(`${DB}/shop/${me}/hearts`, Math.max(0, heartsOf(me) - 1));
+      extra = ' (đã dùng ❤️)';
+    }
+    extra = extra || ' + dự phòng';
+  }
+
+  // x2: tiêu 1 vật phẩm x2 cho trận này
+  if (useX2ThisSubmit && !x2UsedOn(me, mid)) {
+    await fbSet(`${DB}/shop/${me}/x2Matches/${mid}`, true);
+    await fbSet(`${DB}/shop/${me}/x2`, Math.max(0, x2Of(me) - 1));
+    extra += ' ⚡x2';
+  }
+
+  document.getElementById('modal-overlay').classList.remove('open');
+  activeMatchId = null;
+  useHeartThisSubmit = false;
+  useX2ThisSubmit = false;
+  showToast(`✅ Đã đoán ${score}${extra}`);
+  renderMatches();
+}
+
+// ══════════════════════════════════════════════
+//  LEADERBOARD – 2 bảng riêng: Vòng bảng (đã xong) & Vòng loại trực tiếp
+// ══════════════════════════════════════════════
+let lbMode = 'ko'; // 'ko' = vòng loại trực tiếp (mặc định) | 'group' = vòng bảng
+function setLbMode(el, mode) {
+  document.querySelectorAll('#lb-tabs .filter-chip').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  lbMode = mode;
+  renderLeaderboard();
+}
+// Tính điểm theo từng phân hệ. Vòng bảng = trận id<73; Knockout = id>=73 (bỏ trận không tính điểm)
+function phaseStats(uid, mode) {
+  let correct = 0, wrong = 0, koPts = 0;
+  Object.entries(scores[uid] || {}).forEach(([mid, data]) => {
+    const id = Number(mid);
+    const isKo = id >= 73;
+    if (mode === 'ko') {
+      if (!isKo) return;
+      if (NO_SCORE_MATCHES.includes(id)) return;
+      koPts += (data.points || 0);          // KO: dùng ĐIỂM ĐÃ LƯU (theo tỷ lệ tại lúc chấm)
+    } else {
+      if (isKo) return;
+    }
+    if (data.correct === true) correct++;
+    else if (data.correct === false) wrong++;
+  });
+
+  if (mode !== 'ko') {
+    // Vòng bảng: đúng +20.000 / sai -10.000
+    const pts = correct * GROUP_PTS_CORRECT + wrong * GROUP_PTS_WRONG;
+    return {pts, correct, wrong, spent: 0, combo: 0, lucky: 0, champ: 0, hasBet: false};
+  }
+
+  // Knockout: tổng điểm đã lưu + thưởng/cược - tiền mua
+  const spent = spentOf(uid);
+  const combo = comboBonus(uid);
+  const lucky = luckyBonusOf(uid);
+  const jackpot = jackpotNet(uid);
+  let champ = 0;
+  const bets = userBets(uid);
+  if (bets.length) {
+    const champion = getChampion();
+    bets.forEach(b => {
+      champ -= b.stake;
+      if (champion && b.team === champion) champ += b.stake * b.odds;
+    });
+  }
+  const pts = koPts - spent + combo + lucky + champ + jackpot;
+  return {pts, correct, wrong, spent, combo, lucky, champ, jackpot, hasBet: bets.length > 0, hasJp: joinedAnyJackpot(uid)};
+}
+function renderLeaderboard() {
+  const approved = Object.entries(users).filter(([,u]) => u.approved);
+  let rows = approved.map(([uid, u]) => ({uid, name: u.name, ...phaseStats(uid, lbMode)}));
+
+  if (lbMode === 'ko') {
+    // Vào bảng knockout nếu đã tham gia bất kỳ hoạt động nào
+    rows = rows.filter(r => isUserActive(r.uid) || r.spent > 0 || r.lucky > 0 || r.hasBet || r.hasJp);
+  } else {
+    // Vòng bảng: chỉ ai có dữ liệu điểm vòng bảng
+    rows = rows.filter(r => (r.correct + r.wrong) > 0);
+  }
+  rows.sort((a,b) => a.pts - b.pts); // âm nhiều nhất lên đầu
+
+  const total = rows.reduce((s, p) => s + p.pts, 0);
+  const totalEl = document.getElementById('total-pts');
+  totalEl.textContent = fmtPts(total) + 'đ';
+  totalEl.className = 'val ' + (total >= 0 ? 'pos' : 'neg');
+  document.getElementById('total-lbl').textContent =
+    lbMode === 'ko' ? 'Đóng góp vòng loại trực tiếp' : 'Đóng góp vòng bảng';
+  document.getElementById('total-sub').textContent =
+    `${rows.length} người tham gia · ${rows.filter(p=>p.pts<0).length} mạnh thường quân`;
+
+  const crowns = ['👑','🥈','🥉'];
+  document.getElementById('lb-list').innerHTML = rows.length === 0
+    ? `<p class="empty-msg">${lbMode === 'ko' ? 'Chưa ai dự đoán vòng loại trực tiếp' : 'Chưa có dữ liệu vòng bảng'}</p>`
+    : rows.map((p, i) => {
+      const isMe = p.uid === currentUser?.id;
+      const ptsClass = p.pts >= 0 ? 'pos' : 'neg';
+      const spentTxt = (lbMode === 'ko' && p.spent > 0) ? ` · 🛒 ${p.spent.toLocaleString('vi-VN')}đ` : '';
+      const comboTxt = (lbMode === 'ko' && p.combo > 0) ? ` · 🔥+${p.combo.toLocaleString('vi-VN')}` : '';
+      const luckyTxt = (lbMode === 'ko' && p.lucky > 0) ? ` · 🎁+${p.lucky.toLocaleString('vi-VN')}` : '';
+      const champTxt = (lbMode === 'ko' && p.champ) ? ` · 👑${p.champ>0?'+':''}${p.champ.toLocaleString('vi-VN')}` : '';
+      const jpTxt = (lbMode === 'ko' && p.jackpot) ? ` · 💰${p.jackpot>0?'+':''}${p.jackpot.toLocaleString('vi-VN')}` : '';
+      return `
+        <div class="lb-card">
+          <div class="lb-rank r${i+1}">${i < 3 ? crowns[i] : i+1}</div>
+          <div style="flex:1">
+            <div class="lb-name">${starWrap(p.uid, p.name)}${isMe?'<span class="me-badge">Bạn</span>':''}</div>
+            <div class="lb-sub">${p.correct} đúng · ${p.wrong} sai${spentTxt}${comboTxt}${luckyTxt}${champTxt}${jpTxt}</div>
+          </div>
+          <div class="lb-pts ${ptsClass}">${fmtPts(p.pts)}đ</div>
+        </div>
+      `;
+    }).join('');
+}
+
+// ══════════════════════════════════════════════
+//  SHOP / VẬT PHẨM
+// ══════════════════════════════════════════════
+function renderShop() {
+  if (!currentUser) return;
+  const me = currentUser.id;
+  const s = shop[me] || {};
+  const bal = phaseStats(me, 'ko').pts;
+  const balEl = document.getElementById('shop-balance-val');
+  balEl.textContent = fmtPts(bal) + 'đ';
+  balEl.className = 'val ' + (bal >= 0 ? 'pos' : 'neg');
+
+  const items = [
+    { type:'heart', ico:'❤️', nm:'Trái tim', price:15000, oldPrice:20000, sale:25,
+      ds:'Trong 1 trận được đặt thêm 1 tỷ số dự phòng — trúng 1 trong 2 là đúng. Dùng 1 lần.',
+      tag:`Đang có: ${heartsOf(me)}`, owned:false },
+    { type:'x2', ico:'⚡', nm:'Nhân đôi x2', price:20000, oldPrice:30000, sale:33,
+      ds:'Áp vào 1 trận: nếu đoán ĐÚNG được nhân đôi tiền thưởng (+100.000đ thay vì 50.000đ). Dùng 1 lần.',
+      tag:`Đang có: ${x2Of(me)}`, owned:false },
+    { type:'magnifier', ico:'🔍', nm:'Kính lúp', price:10000,
+      ds:'Xem được tỷ số tất cả mọi người đã đặt trong từng trận + thống kê bao nhiêu người đoán mỗi tỷ số.',
+      tag:'Vĩnh viễn', owned: hasMagnifier(me) },
+    { type:'star', ico:'⭐', nm:'Ngôi sao', price:10000,
+      ds:'Tên của bạn sẽ hiện sáng, nổi bật ở bảng xếp hạng và danh sách dự đoán.',
+      tag:'Vĩnh viễn', owned: hasStar(me) },
+  ];
+
+  const itemsHtml = items.map(it => {
+    const nmHtml = it.sale
+      ? `${it.nm} <span class="sale-badge">-${it.sale}%</span>`
+      : it.nm;
+    const priceHtml = it.sale
+      ? `<span class="old-price">${it.oldPrice.toLocaleString('vi-VN')}đ</span> <span style="color:var(--red)">${it.price.toLocaleString('vi-VN')}đ</span>`
+      : it.tag;
+    const freeHeart = it.type === 'heart' && !heartFreeClaimed(me);
+    const btn = it.owned
+      ? `<button class="shop-buy owned">Đã sở hữu</button>`
+      : freeHeart
+        ? `<button class="shop-buy" style="background:linear-gradient(135deg,var(--accent2),#ff8a50)" onclick="claimFreeHeart()">🎁 Nhận FREE</button>`
+        : `<button class="shop-buy" onclick="buyItem('${it.type}')">Mua ${it.price.toLocaleString('vi-VN')}đ</button>`;
+    const freeNote = freeHeart ? ` <span class="sale-badge" style="background:var(--accent2)">TẶNG 1 FREE</span>` : '';
+    return `
+      <div class="shop-item${it.sale?' on-sale':''}">
+        <div class="ico">${it.ico}</div>
+        <div class="info">
+          <div class="nm">${nmHtml}${freeNote}</div>
+          <div class="ds">${it.ds}</div>
+          <div class="price">${it.sale ? priceHtml + ' · ' + it.tag : it.tag}</div>
+        </div>
+        ${btn}
+      </div>`;
+  }).join('');
+
+  // COMBO STREAK – nhặt miễn phí
+  const comboHtml = `
+    <div class="shop-item" style="border-color:var(--accent)">
+      <div class="ico">🔥</div>
+      <div class="info">
+        <div class="nm">Combo Streak <span class="sale-badge" style="background:var(--accent);color:#000">FREE</span></div>
+        <div class="ds">Đoán đúng liên tiếp được thưởng: 2 trận +20.000đ, 3 trận +50.000đ, mỗi trận đúng tiếp theo +40.000đ.</div>
+        <div class="price">Miễn phí · vĩnh viễn</div>
+      </div>
+      ${ownsCombo(me) ? `<button class="shop-buy owned">Đã nhặt ✓</button>` : `<button class="shop-buy" onclick="claimCombo()">Nhặt free</button>`}
+    </div>`;
+
+  // LÌ XÌ MAY MẮN – vòng quay
+  const fs = freeSpinsOf(me);
+  const luckyHtml = `
+    <div class="shop-item" style="border-color:var(--gold);box-shadow:0 0 0 1px var(--gold) inset">
+      <div class="ico">🎁</div>
+      <div class="info">
+        <div class="nm">Lì xì may mắn</div>
+        <div class="ds">Vòng quay trúng thưởng: tiền lì xì, thêm lượt quay, skin, voucher giảm giá... có cả ô +100.000đ!</div>
+        <div class="price">${SPIN_PRICE.toLocaleString('vi-VN')}đ / lượt${fs>0?` · 🎟️ ${fs} lượt miễn phí`:''}</div>
+      </div>
+      <button class="shop-buy" style="background:linear-gradient(135deg,var(--gold),#ffae00)" onclick="openWheel()">Quay 🎰</button>
+    </div>`;
+
+  // 12 SKIN CON GIÁP
+  const tokenNote = skinTokensOf(me) > 0
+    ? `<p style="font-size:12px;color:var(--accent);font-weight:800;margin:-4px 0 8px">🎟️ Bạn có ${skinTokensOf(me)} vé đổi skin MIỄN PHÍ — bấm "Mua" bất kỳ skin nào.</p>` : '';
+  const skinHtml = `
+    <p class="section-title" style="margin-top:22px">🐲 Skin 12 con giáp · đồng giá ${SKIN_PRICE.toLocaleString('vi-VN')}đ</p>
+    ${tokenNote}
+    <p style="font-size:12px;color:var(--text2);margin:-4px 0 12px">Mua skin để tên hiện màu nổi bật kèm hình con giáp. Bấm skin đã có để trang bị / gỡ.</p>
+    <div class="skin-grid">
+      ${SKINS.map(sk => {
+        const owned = ownsSkin(me, sk.id);
+        const eq = shop[me]?.skin === sk.id;
+        const btn = !owned
+          ? `<button class="sbtn" onclick="buySkin('${sk.id}')">Mua ${SKIN_PRICE.toLocaleString('vi-VN')}đ</button>`
+          : eq
+            ? `<button class="sbtn equipped" onclick="buySkin('${sk.id}')">✓ Đang dùng</button>`
+            : `<button class="sbtn owned" onclick="buySkin('${sk.id}')">Trang bị</button>`;
+        return `
+          <div class="skin-card ${eq?'equipped':''}">
+            <div class="se" style="filter:drop-shadow(0 0 6px ${sk.color})">${sk.emoji}</div>
+            <div class="sn" style="color:${sk.color}">${sk.name}</div>
+            ${btn}
+          </div>`;
+      }).join('')}
+    </div>`;
+
+  document.getElementById('shop-list').innerHTML = itemsHtml + comboHtml + luckyHtml + skinHtml;
+}
+async function claimCombo() {
+  if (!currentUser) return;
+  const me = currentUser.id;
+  if (ownsCombo(me)) { showToast('Bạn đã có Combo Streak'); return; }
+  await fbSet(`${DB}/shop/${me}/combo`, true);
+  showToast('🔥 Đã nhặt Combo Streak miễn phí!');
+  renderShop();
+}
+async function claimFreeHeart() {
+  if (!currentUser) return;
+  const me = currentUser.id;
+  if (heartFreeClaimed(me)) { showToast('Bạn đã nhận Trái tim miễn phí rồi'); return; }
+  await fbSet(`${DB}/shop/${me}/freeHeart`, true);
+  await fbSet(`${DB}/shop/${me}/hearts`, heartsOf(me) + 1);
+  showToast('🎁 Đã nhận 1 Trái tim miễn phí!');
+  renderShop();
+}
+async function buySkin(id) {
+  if (!currentUser) return;
+  const me = currentUser.id;
+  const sk = skinById(id);
+  if (!sk) return;
+  if (ownsSkin(me, id)) {
+    // đã sở hữu → trang bị / gỡ
+    const cur = shop[me]?.skin;
+    await fbSet(`${DB}/shop/${me}/skin`, cur === id ? null : id);
+    showToast(cur === id ? 'Đã gỡ skin' : `Đã trang bị ${sk.name}`);
+    renderShop();
+    return;
+  }
+  // Vé đổi skin miễn phí (từ vòng quay)
+  if (skinTokensOf(me) > 0) {
+    await fbSet(`${DB}/shop/${me}/skinTokens`, skinTokensOf(me) - 1);
+    await fbSet(`${DB}/shop/${me}/skins/${id}`, true);
+    await fbSet(`${DB}/shop/${me}/skin`, id);
+    showToast(`🎟️ Đổi skin ${sk.name} miễn phí!`);
+    renderShop();
+    return;
+  }
+  let price = SKIN_PRICE;
+  const voucher = hasVoucher50(me);
+  if (voucher) price = Math.round(price / 2);
+  if (!confirm(`Mua skin ${sk.name} giá ${price.toLocaleString('vi-VN')}đ${voucher?' (đã giảm 50%)':''}?\nSố tiền này sẽ trừ vào bảng xếp hạng vòng loại trực tiếp.`)) return;
+  await fbSet(`${DB}/shop/${me}/spent`, spentOf(me) + price);
+  if (voucher) await fbSet(`${DB}/shop/${me}/voucher50`, null);
+  await fbSet(`${DB}/shop/${me}/skins/${id}`, true);
+  await fbSet(`${DB}/shop/${me}/skin`, id); // tự trang bị
+  showToast(`✅ Đã mua & trang bị ${sk.name} (−${price.toLocaleString('vi-VN')}đ)`);
+  renderShop();
+}
+async function buyItem(type) {
+  if (!currentUser) return;
+  const me = currentUser.id;
+  const s = shop[me] || {};
+  let price, label;
+  if (type === 'magnifier') { if (s.magnifier) { showToast('Bạn đã có Kính lúp rồi'); return; } price = 10000; label = 'Kính lúp'; }
+  else if (type === 'star') { if (s.star) { showToast('Bạn đã có Ngôi sao rồi'); return; } price = 10000; label = 'Ngôi sao'; }
+  else if (type === 'heart') { price = 15000; label = 'Trái tim'; }
+  else if (type === 'x2') { price = 20000; label = 'Nhân đôi x2'; }
+  else return;
+
+  const voucher = hasVoucher50(me);
+  if (voucher) price = Math.round(price / 2);
+  if (!confirm(`Mua ${label} giá ${price.toLocaleString('vi-VN')}đ${voucher?' (đã giảm 50%)':''}?\nSố tiền này sẽ trừ vào bảng xếp hạng vòng loại trực tiếp.`)) return;
+
+  await fbSet(`${DB}/shop/${me}/spent`, spentOf(me) + price);
+  if (voucher) await fbSet(`${DB}/shop/${me}/voucher50`, null);
+  if (type === 'magnifier') await fbSet(`${DB}/shop/${me}/magnifier`, true);
+  if (type === 'star')      await fbSet(`${DB}/shop/${me}/star`, true);
+  if (type === 'heart')     await fbSet(`${DB}/shop/${me}/hearts`, heartsOf(me) + 1);
+  if (type === 'x2')        await fbSet(`${DB}/shop/${me}/x2`, x2Of(me) + 1);
+
+  showToast(`✅ Đã mua ${label} (−${price.toLocaleString('vi-VN')}đ)`);
+  renderShop();
+}
+
+// ══════════════════════════════════════════════
+//  VÒNG QUAY LÌ XÌ
+// ══════════════════════════════════════════════
+let rolling = false;
+// Thứ tự ô quanh viền (row-major 3x3, ô giữa là 'c'): chỉ số theo WHEEL
+const LX_ORDER = [0, 1, 2, 7, 'c', 3, 6, 5, 4];
+function buildGrid() {
+  document.getElementById('wheel-grid').innerHTML = LX_ORDER.map(o => {
+    if (o === 'c') return `<div class="lx-center">🎁</div>`;
+    const w = WHEEL[o];
+    return `<div class="lx-cell" id="lx-${o}"><div class="e">${w.emoji}</div><div class="l">${w.label}</div></div>`;
+  }).join('');
+}
+function setLit(i) {
+  document.querySelectorAll('#wheel-grid .lx-cell').forEach(c => c.classList.remove('lit', 'win'));
+  const el = document.getElementById('lx-' + i);
+  if (el) el.classList.add('lit');
+}
+function markWin(i) {
+  const el = document.getElementById('lx-' + i);
+  if (el) { el.classList.remove('lit'); el.classList.add('win'); }
+}
+// Đèn nhảy quanh các ô rồi dừng ở ô targetIdx (giảm tốc dần)
+function rollTo(targetIdx, onDone) {
+  rolling = true;
+  setBtns(true);
+  const total = 4 * 8 + targetIdx; // ~4 vòng rồi dừng đúng ô
+  let k = 0;
+  (function step() {
+    setLit(k % 8);
+    if (k >= total) { markWin(targetIdx); rolling = false; setBtns(false); onDone && onDone(); return; }
+    const p = k / total;
+    const interval = 70 + p * p * 380; // 70ms → ~450ms (chậm dần)
+    k++;
+    setTimeout(step, interval);
+  })();
+}
+function setBtns(disabled) {
+  document.getElementById('wheel-spin-btn').disabled = disabled;
+  document.getElementById('wheel-try-btn').disabled = disabled;
+}
+function openWheel() {
+  if (!currentUser) return;
+  buildGrid();
+  document.getElementById('wheel-result').innerHTML = '👉 Bấm Quay (hoặc Quay thử) để bắt đầu';
+  const fs = freeSpinsOf(currentUser.id);
+  document.getElementById('wheel-spin-btn').textContent = fs > 0 ? `Quay miễn phí (còn ${fs})` : `Quay (${SPIN_PRICE.toLocaleString('vi-VN')}đ)`;
+  document.getElementById('wheel-overlay').classList.add('open');
+}
+function closeWheel(e) {
+  if (e && e.type === 'click' && e.target !== document.getElementById('wheel-overlay')) return;
+  if (rolling) return;
+  document.getElementById('wheel-overlay').classList.remove('open');
+}
+function pickOutcome() {
+  if (Math.random() * 100 < 2) return 7;       // +100.000đ: 2%
+  const others = [0,1,2,3,4,5,6];              // 7 ô còn lại đều nhau
+  return others[Math.floor(Math.random() * others.length)];
+}
+// Quay thật: trừ tiền/lượt, trúng nhận quà
+async function spinWheel() {
+  if (rolling || !currentUser) return;
+  const me = currentUser.id;
+  const free = freeSpinsOf(me) > 0;
+  if (free) await fbSet(`${DB}/shop/${me}/freeSpins`, freeSpinsOf(me) - 1);
+  else      await fbSet(`${DB}/shop/${me}/spent`, spentOf(me) + SPIN_PRICE);
+  document.getElementById('wheel-result').innerHTML = '🎰 Đang quay...';
+  const idx = pickOutcome();
+  rollTo(idx, () => applyOutcome(idx));
+}
+// Quay thử: KHÔNG trừ tiền, KHÔNG nhận quà
+function trySpin() {
+  if (rolling || !currentUser) return;
+  document.getElementById('wheel-result').innerHTML = '🎮 Quay thử...';
+  const idx = Math.floor(Math.random() * 8);
+  rollTo(idx, () => {
+    const w = WHEEL[idx];
+    document.getElementById('wheel-result').innerHTML =
+      `<div style="color:var(--text2)">Quay thử dừng ở: ${w.emoji} <b>${w.label}</b> — không tính tiền/quà nhé!</div>`;
+  });
+}
+async function applyOutcome(idx) {
+  const me = currentUser.id;
+  const w = WHEEL[idx];
+  let msg = '';
+  if (w.type === 'money') {
+    await fbSet(`${DB}/shop/${me}/luckyBonus`, luckyBonusOf(me) + w.amount);
+    msg = `🎉 Trúng +${w.amount.toLocaleString('vi-VN')}đ!`;
+  } else if (w.type === 'respin') {
+    await fbSet(`${DB}/shop/${me}/freeSpins`, freeSpinsOf(me) + 1);
+    msg = '🔄 Được thêm 1 lượt quay!';
+  } else if (w.type === 'skin') {
+    await fbSet(`${DB}/shop/${me}/skinTokens`, skinTokensOf(me) + 1);
+    msg = '🎨 Được tặng 1 vé đổi skin! Xuống mục skin chọn nhé.';
+  } else if (w.type === 'voucher') {
+    await fbSet(`${DB}/shop/${me}/voucher50`, true);
+    msg = '🎟️ Voucher giảm 50% cho lần mua vật phẩm tiếp theo!';
+  } else {
+    msg = '🍀 Chúc may mắn lần sau!';
+  }
+  const fs = freeSpinsOf(me);
+  document.getElementById('wheel-result').innerHTML = `<div style="font-weight:900;color:var(--gold);font-size:16px">${msg}</div>`;
+  document.getElementById('wheel-spin-btn').textContent = fs > 0 ? `Quay miễn phí (còn ${fs})` : `Quay (${SPIN_PRICE.toLocaleString('vi-VN')}đ)`;
+  renderShop();
+}
+
+// ══════════════════════════════════════════════
+//  NHÀ VÔ ĐỊCH
+// ══════════════════════════════════════════════
+let champGridOpen = false;
+function renderChamp() {
+  if (!currentUser) return;
+  const me = currentUser.id;
+  const el = document.getElementById('champ-content');
+  const ph = champPhase();
+  const myBets = userBets(me);
+  const openSlot = champOpenSlot(me);
+  const canMore = openSlot !== null;
+  const alive = aliveChampTeams();
+  const elim = eliminatedTeams();
+  const champion = getChampion();
+  const dl1 = fmtKickoffVN(champDeadline1().toISOString());
+  const dl2 = fmtKickoffVN(champDeadline2().toISOString());
+
+  let html = '';
+
+  // Đã có nhà vô địch → tổng kết
+  if (champion) {
+    html += `<div class="champ-hero" style="border-color:var(--gold)">
+      <div style="font-size:40px">${champFlag(champion)}</div>
+      <div style="font-size:13px;color:var(--text2)">NHÀ VÔ ĐỊCH</div>
+      <div style="font-size:22px;font-weight:900;color:var(--gold)">${champion}</div>
+      ${myBets.map(b => {
+        const won = b.team === champion;
+        return `<div style="margin-top:6px;font-weight:800;color:${won?'var(--green)':'var(--red)'}">
+          ${won ? `🎉 ${champFlag(b.team)} ${b.team}: trúng +${(b.stake*b.odds).toLocaleString('vi-VN')}đ` : `${champFlag(b.team)} ${b.team}: trượt −${b.stake.toLocaleString('vi-VN')}đ`}</div>`;
+      }).join('')}
+    </div>`;
+  } else {
+    // Thẻ các cược đã đặt
+    if (myBets.length) {
+      html += `<div class="champ-hero">
+        <div style="font-size:13px;color:var(--text2)">Dự đoán nhà vô địch của bạn (${myBets.length}/${CHAMP_MAX_BETS})</div>
+        ${myBets.map(b => { const dead = elim.has(b.team); return `<div style="margin-top:8px${dead?';opacity:.4;filter:grayscale(1)':''}">
+          <span style="font-size:24px">${champFlag(b.team)}</span>
+          <b style="font-size:17px${dead?';text-decoration:line-through':''}"> ${b.team}</b>${dead?' <span style="color:var(--red);font-size:11px;font-weight:800">ĐÃ BỊ LOẠI</span>':''}
+          <div style="font-size:12px;color:var(--gold);font-weight:800">Cược ${b.stake.toLocaleString('vi-VN')}đ · ${b.odds}x → thắng nhận ${(b.stake*b.odds).toLocaleString('vi-VN')}đ</div>
+        </div>`; }).join('')}
+      </div>`;
+    }
+    // Khu vực cược theo giai đoạn
+    if (canMore) {
+      const lan = ph === 1 ? 1 : 2;
+      const dl = ph === 1 ? dl1 : dl2;
+      const sub = `<p style="text-align:center;font-size:12px;color:var(--text2);margin-top:10px">Lần cược ${lan} · tối đa 30.000đ · hạn: ${dl}</p>`;
+      if (myBets.length === 0) {
+        html += `<button class="champ-cta" onclick="openChampGrid()">🏆<br>Hãy dự đoán nhà vô địch<br>Worldcup năm nay</button>${sub}`;
+      } else {
+        html += `<div style="text-align:center;margin-top:14px"><button class="btn-primary" onclick="openChampGrid()">➕ Đặt cược lần ${lan}</button></div>${sub}`;
+      }
+    } else {
+      let msg;
+      if (ph === 1) msg = `✅ Đã đặt cược lần 1.<br><span style="font-weight:600;color:var(--text2)">Lần cược 2 mở sau ${dl1} (đến hết ${dl2}).</span>`;
+      else if (ph === 2) msg = `✅ Đã đặt cược lần 2 — chờ kết quả.`;
+      else msg = `⏰ Đã hết hạn dự đoán nhà vô địch.`;
+      html += `<div class="champ-hero"><div style="font-weight:800;line-height:1.5">${msg}</div></div>`;
+    }
+  }
+
+  // Lưới chọn đội (ẩn/hiện) — chỉ khi còn quyền cược
+  if (canMore && champGridOpen) {
+    html += `<p class="section-title" style="margin-top:18px">Chọn 1 đội (còn ${alive.length} đội)${ph===2?' · tỷ lệ lần 2 = 75%':''}</p>
+      <div class="champ-grid">${alive.map(t => `
+        <div class="champ-team" onclick="openChampBet('${t.replace(/'/g,"\\'")}')">
+          <div class="ct-flag">${champFlag(t)}</div>
+          <div class="ct-name">${t}</div>
+          <div class="ct-odds">${champEffOdds(t)}x</div>
+        </div>`).join('')}</div>`;
+  }
+
+  // Danh sách đội được chọn + ai chọn cùng (chỉ khi đã cược hoặc đã hết hạn)
+  if (myBets.length || ph === 0) {
+    const byTeam = {};
+    Object.entries(champBets).forEach(([uid, c]) => {
+      if (!users[uid]?.approved) return;
+      userBets(uid).forEach(b => { (byTeam[b.team] = byTeam[b.team] || []).push(uid); });
+    });
+    const teams = Object.keys(byTeam).sort((a,b) => byTeam[b].length - byTeam[a].length);
+    html += `<p class="section-title" style="margin-top:20px">🗳️ Mọi người chọn ai</p>`;
+    if (!teams.length) html += `<p class="empty-msg">Chưa có ai dự đoán</p>`;
+    else html += teams.map(t => {
+      const dead = elim.has(t);
+      const names = byTeam[t].map(uid => {
+        const me2 = uid === me;
+        return `<span class="predictor-chip ${me2?'me':'done'}">${starWrap(uid, users[uid].name)}</span>`;
+      }).join('');
+      return `<div class="card" style="${dead?'opacity:.4;filter:grayscale(1)':''}">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+          <span style="font-size:22px">${champFlag(t)}</span>
+          <b style="${dead?'text-decoration:line-through':''}">${t}</b> <span style="color:var(--text2);font-size:12px">(${champOdds(t)}x)</span>
+          ${dead?'<span style="color:var(--red);font-size:11px;font-weight:800">ĐÃ BỊ LOẠI</span>':''}
+          <span style="margin-left:auto;color:var(--accent);font-weight:800">${byTeam[t].length} người</span>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px">${names}</div>
+      </div>`;
+    }).join('');
+  }
+
+  el.innerHTML = html;
+}
+function openChampGrid() {
+  champGridOpen = true;
+  renderChamp();
+  document.querySelector('.champ-grid')?.scrollIntoView({behavior:'smooth', block:'start'});
+}
+let champPickTeam = null;
+function openChampBet(team) {
+  if (champOpenSlot(currentUser.id) === null) {
+    showToast(champPhase() === 0 ? 'Đã hết hạn dự đoán' : 'Lần cược này bạn đã đặt rồi');
+    return;
+  }
+  champPickTeam = team;
+  const odds = champEffOdds(team);
+  document.getElementById('champ-pick-flag').textContent = champFlag(team);
+  document.getElementById('champ-pick-name').textContent = team;
+  document.getElementById('champ-pick-odds').textContent = `Tỷ lệ thắng: ${odds}x` + (champOpenSlot(currentUser.id) === '1' ? ' (lần 2 = 75%)' : '');
+  document.getElementById('champ-stake').value = 10000;
+  updateChampPayout();
+  document.getElementById('champ-stake').oninput = updateChampPayout;
+  document.getElementById('champ-modal-overlay').classList.add('open');
+}
+function updateChampPayout() {
+  const odds = champEffOdds(champPickTeam);
+  const stake = parseInt(document.getElementById('champ-stake').value) || 0;
+  document.getElementById('champ-payout').textContent =
+    `Nếu trúng nhận: ${Math.round(stake*odds).toLocaleString('vi-VN')}đ`;
+}
+function closeChampModal(e) {
+  if (e && e.type === 'click' && e.target !== document.getElementById('champ-modal-overlay')) return;
+  document.getElementById('champ-modal-overlay').classList.remove('open');
+}
+async function confirmChampBet() {
+  if (!currentUser || !champPickTeam) return;
+  const me = currentUser.id;
+  const slot = champOpenSlot(me);
+  if (slot === null) { showToast(champPhase() === 0 ? 'Đã hết hạn dự đoán' : 'Lần cược này bạn đã đặt rồi'); return; }
+  const stake = parseInt(document.getElementById('champ-stake').value) || 0;
+  if (stake <= 0) { showToast('Nhập số tiền cược hợp lệ'); return; }
+  if (stake > CHAMP_MAX_STAKE) { showToast('Cược tối đa 30.000đ'); return; }
+  const odds = champOddsForSlot(champPickTeam, slot);
+  await fbSet(`${DB}/champ/${me}/${slot}`, {team: champPickTeam, stake, odds});
+  document.getElementById('champ-modal-overlay').classList.remove('open');
+  champGridOpen = false;
+  showToast(`✅ Đã cược ${champFlag(champPickTeam)} ${champPickTeam} · ${stake.toLocaleString('vi-VN')}đ`);
+  renderChamp();
+}
+
+// ══════════════════════════════════════════════
+//  JACKPOT – tham gia 1 chạm · admin chọn người quay · quay ra người thắng
+// ══════════════════════════════════════════════
+async function joinJackpot(mid) {
+  if (!currentUser) return;
+  const m = MATCHES.find(x => x.id === mid); if (!m) return;
+  if (isLocked(m)) { showToast('Trận đã khoá, không tham gia được'); return; }
+  if (!jpEnabledFor(mid)) { showToast('Trận này không mở Jackpot'); return; }
+  const me = currentUser.id;
+  if (jpJoined(me, mid)) { showToast('Bạn đã tham gia rồi'); return; }
+  if (!confirm(`Tham gia Jackpot trận này với ${JACKPOT_FEE.toLocaleString('vi-VN')}đ?\n(Trừ vào bảng xếp hạng vòng loại trực tiếp)`)) return;
+  await fbSet(`${DB}/jackpot/${mid}/${me}`, true);
+  showToast(`✅ Đã tham gia Jackpot · −${JACKPOT_FEE.toLocaleString('vi-VN')}đ`);
+  renderMatches();
+}
+// ── Quay Jackpot (người được admin chọn) ──
+let jpSpinMatch = null, jpSpinning = false;
+function openJpSpin(mid) {
+  const m = MATCHES.find(x => x.id === mid); if (!m) return;
+  if (!results[mid]) { showToast('Chờ admin nhập kết quả trận rồi mới quay được'); return; }
+  if (jpSpinnerOf(mid) !== currentUser.id) { showToast('Bạn không phải người được chọn quay'); return; }
+  if (jpWinnerOf(mid)) { showToast('Trận này đã quay xong'); return; }
+  jpSpinMatch = mid;
+  const rt = resolveTeams()[mid];
+  document.getElementById('jp-spin-sub').textContent = `${rt.team1} vs ${rt.team2} · hũ ${jpPool(mid).toLocaleString('vi-VN')}đ`;
+  renderJpSpinList(mid, -1);
+  document.getElementById('jp-spin-result').innerHTML = `${jpCount(mid)} người tham gia — bấm Quay để chọn người thắng!`;
+  const btn = document.getElementById('jp-spin-btn');
+  btn.disabled = false; btn.textContent = 'Quay 🎰';
+  document.getElementById('jp-spin-overlay').classList.add('open');
+}
+function renderJpSpinList(mid, litIdx) {
+  const parts = jpParticipants(mid);
+  document.getElementById('jp-spin-list').innerHTML = parts.map((uid, i) =>
+    `<div class="jp-spin-row${i === litIdx ? ' lit' : ''}">${starWrap(uid, users[uid]?.name || '?')}</div>`).join('');
+}
+function closeJpSpin(e) {
+  if (e && e.type === 'click' && e.target !== document.getElementById('jp-spin-overlay')) return;
+  if (jpSpinning) return;
+  document.getElementById('jp-spin-overlay').classList.remove('open');
+}
+async function doJpSpin() {
+  if (jpSpinning || jpSpinMatch == null) return;
+  const mid = jpSpinMatch;
+  if (!results[mid]) { showToast('Chờ admin nhập kết quả trận trước'); return; }
+  const parts = jpParticipants(mid);
+  if (!parts.length) { showToast('Chưa có ai tham gia'); return; }
+  if (jpWinnerOf(mid)) { showToast('Đã quay rồi'); return; }
+  jpSpinning = true;
+  const btn = document.getElementById('jp-spin-btn');
+  btn.disabled = true;
+  const winIdx = Math.floor(Math.random() * parts.length);
+  const total = parts.length * 4 + winIdx;   // ~4 vòng
+  let k = 0;
+  (function step() {
+    renderJpSpinList(mid, k % parts.length);
+    if (k >= total) {
+      const winUid = parts[winIdx];
+      fbSet(`${DB}/jpWinner/${mid}`, winUid);
+      jpWinner[mid] = winUid;
+      document.getElementById('jp-spin-result').innerHTML =
+        `🏆 <b>${users[winUid]?.name || '?'}</b> thắng hũ ${jpPool(mid).toLocaleString('vi-VN')}đ!<br>Nhận ${jpShare(mid).toLocaleString('vi-VN')}đ (sau 5% thuế quỹ)` +
+        `<div style="margin-top:8px;color:var(--accent);font-weight:800">📢 Hãy chia sẻ lên nhóm để mọi người cùng biết!</div>`;
+      jpSpinning = false;
+      setTimeout(() => renderMatches(), 1000);
+      return;
+    }
+    const p = k / total;
+    const interval = 70 + p * p * 380;
+    k++;
+    setTimeout(step, interval);
+  })();
+}
+
+// ══════════════════════════════════════════════
+//  ADMIN
+// ══════════════════════════════════════════════
+async function adminLogin() {
+  const pwd = document.getElementById('admin-pwd-input').value;
+  if (pwd !== ADMIN_PASSWORD) { showToast('Sai mật khẩu admin'); return; }
+  isAdmin = true;
+  document.getElementById('admin-login-wrap').style.display = 'none';
+  document.getElementById('admin-panel').style.display = 'block';
+  renderAdminUsers();
+  renderAdminMatchSelect();
+  renderAdminOdds();
+  renderAdminChampionSelect();
+  renderAdminJpSelect();
+  renderAdminJpEnSelect();
+}
+function renderAdminJpEnSelect() {
+  const sel = document.getElementById('admin-jpen-select');
+  if (!sel) return;
+  const resolved = resolveTeams();
+  sel.innerHTML = '<option value="">-- Chọn trận --</option>' +
+    MATCHES.filter(m => teamsResolved(m, resolved)).map(m => {
+      const rt = resolved[m.id];
+      const st = jpEnabledFor(m.id) ? '✅ Mở' : '⛔ Tắt';
+      return `<option value="${m.id}">[${st}] ${m.round}: ${rt.team1} vs ${rt.team2}</option>`;
+    }).join('');
+  document.getElementById('admin-jpen-status').textContent = '';
+}
+function onAdminJpEnSelect() {
+  const id = parseInt(document.getElementById('admin-jpen-select').value);
+  const statusEl = document.getElementById('admin-jpen-status');
+  const btn = document.getElementById('admin-jpen-btn');
+  if (!id) { statusEl.textContent = ''; return; }
+  const on = jpEnabledFor(id);
+  statusEl.innerHTML = on
+    ? '<span style="color:var(--green)">✅ Đang MỞ Jackpot</span>'
+    : '<span style="color:var(--red)">⛔ Đang TẮT Jackpot</span>';
+  btn.textContent = on ? '⛔ Tắt Jackpot trận này' : '✅ Mở Jackpot trận này';
+}
+async function toggleJpEnabled() {
+  const id = parseInt(document.getElementById('admin-jpen-select').value);
+  if (!id) { showToast('Chọn trận trước'); return; }
+  const turnOff = jpEnabledFor(id); // đang mở → tắt
+  if (turnOff) { await fbSet(`${DB}/jpEnabled/${id}`, false); jpEnabled[id] = false; }
+  else { await db.ref(`${DB}/jpEnabled/${id}`).remove(); delete jpEnabled[id]; }
+  showToast(turnOff ? '⛔ Đã TẮT Jackpot trận này' : '✅ Đã MỞ Jackpot trận này');
+  renderAdminJpEnSelect();
+  document.getElementById('admin-jpen-select').value = id;
+  onAdminJpEnSelect();
+}
+function renderAdminJpSelect() {
+  const sel = document.getElementById('admin-jp-select');
+  if (!sel) return;
+  const resolved = resolveTeams();
+  sel.innerHTML = '<option value="">-- Chọn trận --</option>' +
+    MATCHES.filter(m => teamsResolved(m, resolved) && jpCount(m.id) > 0).map(m => {
+      const rt = resolved[m.id];
+      const done = jpWinnerOf(m.id) ? ' 🏆' : (jpSpinnerOf(m.id) ? ' 🎰' : '');
+      return `<option value="${m.id}">${m.round}: ${rt.team1} vs ${rt.team2} (${jpCount(m.id)}đ)${done}</option>`;
+    }).join('');
+  document.getElementById('admin-jp-info').textContent = '';
+  document.getElementById('admin-jp-spinner').innerHTML = '';
+  document.getElementById('admin-jp-result').innerHTML = '';
+}
+function onAdminJpSelect() {
+  const id = parseInt(document.getElementById('admin-jp-select').value);
+  if (!id) return;
+  const parts = jpParticipants(id);
+  document.getElementById('admin-jp-info').textContent = `${parts.length} người tham gia · hũ ${jpPool(id).toLocaleString('vi-VN')}đ`;
+  const cur = jpSpinnerOf(id);
+  // Cho phép chọn BẤT KỲ tài khoản đã duyệt làm người quay
+  const allUsers = Object.entries(users)
+    .filter(([, u]) => u.approved && !u.rejected)
+    .sort((a, b) => (a[1].name || '').localeCompare(b[1].name || '', 'vi'));
+  document.getElementById('admin-jp-spinner').innerHTML =
+    '<option value="">-- Chọn người quay --</option>' +
+    allUsers.map(([uid, u]) => `<option value="${uid}" ${cur===uid?'selected':''}>${u.name}</option>`).join('');
+  const win = jpWinnerOf(id);
+  document.getElementById('admin-jp-result').innerHTML = win
+    ? `<span style="color:var(--gold);font-weight:800">🏆 Đã quay: ${users[win]?.name||'?'} thắng ${jpShare(id).toLocaleString('vi-VN')}đ</span>`
+    : (cur ? `<span style="color:var(--text2)">Người quay: ${users[cur]?.name||'?'} (chờ quay)</span>` : '');
+}
+async function adminSaveSpinner() {
+  const id = parseInt(document.getElementById('admin-jp-select').value);
+  if (!id) { showToast('Chọn trận trước'); return; }
+  if (jpWinnerOf(id)) { showToast('Trận này đã quay xong rồi'); return; }
+  const uid = document.getElementById('admin-jp-spinner').value;
+  if (!uid) { showToast('Chọn người quay'); return; }
+  await fbSet(`${DB}/jpSpinner/${id}`, uid);
+  jpSpinner[id] = uid;
+  showToast(`✅ Đã chọn ${users[uid]?.name||'?'} quay Jackpot trận này`);
+  renderAdminJpSelect();
+  document.getElementById('admin-jp-select').value = id;
+  onAdminJpSelect();
+}
+function renderAdminOdds() {
+  document.getElementById('admin-odds-correct').value = curCorrect();
+  document.getElementById('admin-odds-wrong').value = curWrongMag();
+}
+async function adminSaveOdds() {
+  const c = parseInt(document.getElementById('admin-odds-correct').value) || 0;
+  const w = parseInt(document.getElementById('admin-odds-wrong').value) || 0;
+  if (c < 0 || w < 0) { showToast('Giá trị không hợp lệ'); return; }
+  await fbSet(`${DB}/oddsConfig`, {correct: c, wrong: w});
+  oddsCfg = {correct: c, wrong: w};
+  showToast(`✅ Tỷ lệ mới: đúng +${c.toLocaleString('vi-VN')} / sai −${w.toLocaleString('vi-VN')} (áp dụng trận sau)`);
+}
+function renderAdminChampionSelect() {
+  const sel = document.getElementById('admin-champion-select');
+  if (!sel) return;
+  const teams = r32Teams().slice().sort((a,b) => a.localeCompare(b, 'vi'));
+  sel.innerHTML = `<option value="">-- (Tự lấy đội thắng chung kết) --</option>` +
+    teams.map(t => `<option value="${t}" ${championWinner===t?'selected':''}>${champFlag(t)} ${t}</option>`).join('');
+}
+async function adminSaveChampion() {
+  const t = document.getElementById('admin-champion-select').value;
+  await fbSet(`${DB}/championWinner`, t || '');
+  championWinner = t || '';
+  showToast(t ? `👑 Đã chốt nhà vô địch: ${t}` : 'Đã xoá nhà vô địch (tự lấy theo chung kết)');
+}
+function renderAdminUsers() {
+  if (!isAdmin) return;
+  const pending  = Object.entries(users).filter(([,u]) => !u.approved && !u.rejected);
+  const approved = Object.entries(users).filter(([,u]) => u.approved);
+  let html = '';
+  if (pending.length) {
+    html += `<p style="font-size:12px;color:var(--accent2);font-weight:700;margin-bottom:8px">⏳ Chờ duyệt (${pending.length})</p>`;
+    html += pending.map(([uid,u]) => `
+      <div class="admin-user-row">
+        <span style="font-weight:700">${u.name}</span>
+        <div style="display:flex;gap:8px">
+          <button class="btn-approve" onclick="approveUser('${uid}',true)">✅ Duyệt</button>
+          <button class="btn-danger"  onclick="approveUser('${uid}',false)">❌ Từ chối</button>
+        </div>
+      </div>`).join('');
+  }
+  if (approved.length) {
+    html += `<p style="font-size:12px;color:var(--text2);font-weight:700;margin:12px 0 8px">✅ Đã duyệt (${approved.length})</p>`;
+    html += approved.map(([uid,u]) => `
+      <div class="admin-user-row">
+        <span>${u.name}</span>
+      </div>`).join('');
+  }
+  if (!html) html = '<p class="empty-msg" style="padding:20px 0">Không có tài khoản nào</p>';
+  document.getElementById('admin-users-list').innerHTML = html;
+}
+async function approveUser(uid, approve) {
+  await fbSet(`${DB}/users/${uid}/approved`, approve);
+  if (!approve) {
+    await fbSet(`${DB}/users/${uid}/rejected`, true);
+    showToast('Đã từ chối');
+  } else {
+    showToast('Đã duyệt – đang tính bù điểm...');
+    await backfillUser(uid);
+    showToast('Xong! Đã tính bù điểm các trận đã qua');
+  }
+}
+
+// Tính bù 5-5 cho 1 người với các trận VÒNG LOẠI TRỰC TIẾP đã có kết quả
+async function backfillUser(uid) {
+  if (!isUserActive(uid)) return;          // chưa bắt đầu nhập knockout → đóng băng, không tính 5-5
+  for (const m of MATCHES) {
+    if (NO_SCORE_MATCHES.includes(m.id)) continue; // trận không tính điểm → bỏ qua
+    if (!results[m.id]) continue;          // trận chưa có kết quả → bỏ qua
+    if (scores[uid]?.[m.id]) continue;     // đã có điểm rồi → bỏ qua
+    const pred = getPred(m.id, uid) || DEFAULT_SCORE;
+    const pred2 = getPred2(m.id, uid);
+    const ok = (pred === results[m.id]) || (!!pred2 && pred2 === results[m.id]);
+    const pts = ptsForResult(uid, m.id, ok, oddsForMatch(m.id)); // dùng tỷ lệ ĐÃ KHOÁ của trận
+    const predLabel = (pred2 ? `${pred} / ${pred2}` : pred) + (x2UsedOn(uid, m.id) ? ' ⚡x2' : '');
+    await fbSet(`${DB}/scores/${uid}/${m.id}`, {predicted: predLabel, actual: results[m.id], correct: ok, points: pts});
+  }
+}
+
+// Tính lại TOÀN BỘ điểm vòng loại trực tiếp cho tất cả user (ghi đè)
+async function recalculateAll() {
+  if (!confirm('Tính lại toàn bộ điểm vòng loại trực tiếp theo tỷ lệ đã khoá của từng trận?')) return;
+  const approved = Object.entries(users).filter(([,u]) => u.approved && !u.rejected);
+  if (!approved.length) { showToast('Chưa có ai được duyệt'); return; }
+  showToast('Đang tính lại...');
+  for (const [uid] of approved) {
+    if (!isUserActive(uid)) continue;       // đóng băng → bỏ qua
+    for (const m of MATCHES) {
+      if (NO_SCORE_MATCHES.includes(m.id)) continue; // trận đầu không tính điểm
+      if (!results[m.id]) continue;
+      const pred = getEffectivePred(m.id, uid) || DEFAULT_SCORE;
+      const pred2 = getPred2(m.id, uid);
+      const ok = (pred === results[m.id]) || (!!pred2 && pred2 === results[m.id]);
+      const pts = ptsForResult(uid, m.id, ok, oddsForMatch(m.id)); // tỷ lệ đã khoá của trận
+      const predLabel = (pred2 ? `${pred} / ${pred2}` : pred) + (x2UsedOn(uid, m.id) ? ' ⚡x2' : '');
+      await fbSet(`${DB}/scores/${uid}/${m.id}`, {predicted: predLabel, actual: results[m.id], correct: ok, points: pts});
+    }
+  }
+  showToast('Xong! Đã tính lại cho ' + approved.length + ' người');
+}
+
+// Tính bù cho TẤT CẢ người được duyệt
+async function backfillAll() {
+  const approved = Object.entries(users).filter(([,u]) => u.approved && !u.rejected);
+  if (!approved.length) { showToast('Chưa có ai được duyệt'); return; }
+  showToast('Đang tính bù điểm...');
+  for (const [uid] of approved) {
+    await backfillUser(uid);
+  }
+  showToast('Xong! Đã tính bù cho ' + approved.length + ' người');
+}
+async function removeUser(uid) {
+  if (!confirm('Xoá tài khoản này?')) return;
+  await db.ref(`${DB}/users/${uid}`).remove();
+  showToast('Đã xoá');
+}
+function renderAdminMatchSelect() {
+  if (!isAdmin) return;
+  const resolved = resolveTeams();
+  document.getElementById('admin-match-select').innerHTML =
+    '<option value="">-- Chọn trận đấu --</option>' +
+    MATCHES.map(m => {
+      const rt = resolved[m.id];
+      const ready = teamsResolved(m, resolved);
+      const label = ready ? `${rt.team1} vs ${rt.team2}` : `(chờ đội) trận ${m.id-72}`;
+      return `<option value="${m.id}">${m.round}: ${label}${results[m.id]?' ✅':''}</option>`;
+    }).join('');
+}
+function onAdminMatchSelect() {
+  const id = parseInt(document.getElementById('admin-match-select').value);
+  if (!id) return;
+  const resolved = resolveTeams();
+  const m = MATCHES.find(x=>x.id===id);
+  const ready = teamsResolved(m, resolved);
+  const d1 = dispTeam(m, 1, resolved);
+  const d2 = dispTeam(m, 2, resolved);
+  document.getElementById('admin-team1').textContent = d1.name;
+  document.getElementById('admin-team2').textContent = d2.name;
+  if (results[id]) {
+    const [s1,s2] = results[id].split('-');
+    document.getElementById('admin-score1').value = s1;
+    document.getElementById('admin-score2').value = s2;
+  } else {
+    document.getElementById('admin-score1').value = 0;
+    document.getElementById('admin-score2').value = 0;
+  }
+  document.getElementById('admin-match-info').textContent =
+    `${m.round} · ${fmtKickoffVN(m.kickoff)}` + (ready ? '' : ' · ⚠️ Chưa đủ đội – hãy nhập kết quả vòng trước');
+  document.getElementById('adv-name1').textContent = d1.name;
+  document.getElementById('adv-name2').textContent = d2.name;
+  updateAdvanceUI();
+  renderAdminPreds();
+}
+// Hiện bộ chọn đội đi tiếp khi tỷ số hoà
+function updateAdvanceUI() {
+  const id = parseInt(document.getElementById('admin-match-select').value);
+  const s1 = parseInt(document.getElementById('admin-score1').value)||0;
+  const s2 = parseInt(document.getElementById('admin-score2').value)||0;
+  const wrap = document.getElementById('admin-advance-wrap');
+  if (s1 === s2) {
+    wrap.style.display = 'block';
+    const adv = advances[id];
+    if (adv) { const r = document.querySelector(`input[name=adv-pick][value="${adv}"]`); if (r) r.checked = true; }
+  } else {
+    wrap.style.display = 'none';
+    document.querySelectorAll('input[name=adv-pick]').forEach(r => r.checked = false);
+  }
+}
+async function adminSaveResult() {
+  const id = parseInt(document.getElementById('admin-match-select').value);
+  if (!id) { showToast('Chọn trận trước'); return; }
+  const resolved = resolveTeams();
+  const m = MATCHES.find(x=>x.id===id);
+  if (!teamsResolved(m, resolved)) { showToast('⚠️ Trận này chưa đủ 2 đội. Nhập kết quả vòng trước đã.'); return; }
+  const s1 = parseInt(document.getElementById('admin-score1').value)||0;
+  const s2 = parseInt(document.getElementById('admin-score2').value)||0;
+  const actual = `${s1}-${s2}`;
+
+  // Hoà 90 phút → bắt buộc chọn đội đi tiếp (penalty)
+  if (s1 === s2) {
+    const adv = document.querySelector('input[name=adv-pick]:checked')?.value;
+    if (!adv) { showToast('⚖️ Hoà rồi! Hãy chọn đội đi tiếp (penalty).'); return; }
+    await fbSet(`${DB}/advance/${id}`, adv);
+    advances[id] = adv;
+  } else {
+    await db.ref(`${DB}/advance/${id}`).remove();
+    delete advances[id];
+  }
+
+  await fbSet(`${DB}/results/${id}`, actual);
+  results[id] = actual;
+
+  const approved = Object.entries(users).filter(([,u]) => u.approved);
+  const items = [];
+  const countsScore = !NO_SCORE_MATCHES.includes(id);  // trận đầu Nam Phi-Canada không tính điểm
+  if (countsScore) {
+    // KHOÁ tỷ lệ điểm hiện tại cho trận này (trận sau đổi tỷ lệ không ảnh hưởng trận này)
+    const odds = {correct: curCorrect(), wrong: curWrongMag()};
+    await fbSet(`${DB}/matchOdds/${id}`, odds);
+    matchOdds[id] = odds;
+    for (const [uid, u] of approved) {
+      if (!isUserActive(uid)) continue;
+      const pred = getEffectivePred(id, uid) || DEFAULT_SCORE;
+      const pred2 = getPred2(id, uid);
+      const ok = (pred === actual) || (!!pred2 && pred2 === actual);
+      const pts = ptsForResult(uid, id, ok, {c: odds.correct, w: odds.wrong});
+      const predLabel = (pred2 ? `${pred} / ${pred2}` : pred) + (x2UsedOn(uid, id) ? ' ⚡x2' : '');
+      await fbSet(`${DB}/scores/${uid}/${id}`, {predicted: predLabel, actual, correct: ok, points: pts});
+      items.push({name: u.name, pred: predLabel, ok, pts});
+    }
+  }
+
+  // Đội thắng đã xác định → tự đẩy vào vòng sau (tính lại resolved)
+  const nowResolved = resolveTeams();
+  const winner = koWinner(id, nowResolved);
+
+  document.getElementById('admin-result-list').innerHTML =
+    (winner ? `<div class="admin-result-item" style="border:1px solid var(--accent)"><span>➡️ Đi tiếp</span><span style="color:var(--accent);font-weight:800">${winner}</span></div>` : '') +
+    items.map(r => `
+      <div class="admin-result-item">
+        <span>${r.name}</span>
+        <span>${r.pred}</span>
+        <span class="pts-fmt ${r.ok?'pos':'neg'}">${fmtPts(r.pts)}đ</span>
+      </div>`).join('');
+
+  showToast(`✅ Đã lưu ${actual}${s1===s2?' (pen)':''}` + (winner?` · ${winner} đi tiếp`:''));
+  renderAdminMatchSelect();
+  document.getElementById('admin-match-select').value = id;
+}
+function renderAdminPreds() {
+  if (!isAdmin) return;
+  const id = parseInt(document.getElementById('admin-match-select').value);
+  if (!id) return;
+  const m = MATCHES.find(x=>x.id===id);
+  const approved = Object.entries(users).filter(([,u]) => u.approved);
+  const html = approved.map(([uid, u]) => {
+    const pred = getEffectivePred(id, uid) || '—';
+    const pred2 = getPred2(id, uid);
+    const predLabel = pred2 ? `${pred} / ${pred2} ❤️` : pred;
+    const isAuto = !getPred(id, uid) && isLocked(m);
+    const sc = scores[uid]?.[id];
+    const ok = sc && sc.correct === true;
+    const ptsTag = sc ? `<span class="pts-fmt ${ok?'pos':'neg'}">${fmtPts(sc.points)}đ</span>` : '';
+    return `<div class="admin-result-item">
+      <span>${starWrap(uid, u.name)}</span>
+      <span>${predLabel}${isAuto?' <em style="font-size:10px;color:var(--text2)">(auto)</em>':''}</span>
+      ${ptsTag}
+    </div>`;
+  }).join('');
+  document.getElementById('admin-preds-view').innerHTML =
+    `<p style="font-size:12px;color:var(--text2);margin-bottom:8px">Dự đoán của mọi người:</p>${html}`;
+}
+
+// ══════════════════════════════════════════════
+//  INIT
+// ══════════════════════════════════════════════
+window.addEventListener('DOMContentLoaded', () => {
+  renderPlayerPicker(); // hiện ô đăng ký ngay, không chờ Firebase
+  initFirebase();
+
+  // Khôi phục session nếu đã đăng nhập trước đó
+  const uid = localStorage.getItem('mg_userId');
+  if (uid) {
+    setTimeout(() => {
+      if (!users[uid] || !users[uid].approved) return;
+      currentUser = {id: uid, name: users[uid].name, approved: true};
+      enterApp();
+    }, 1500);
+  }
+});
+
+document.addEventListener('keydown', e => {
+  if (e.key==='Enter') {
+    if (document.activeElement.id==='admin-pwd-input') adminLogin();
+    if (document.activeElement.id==='reg-pwd2') doRegister();
+  }
+});
+</script>
+</body>
+</html>
