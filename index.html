@@ -603,6 +603,22 @@
       background: none; border: none; color: var(--text2); font-size: 22px; cursor: pointer;
     }
 
+    /* HỘP QUÀ TROLL */
+    #gift-overlay {
+      display: none; position: fixed; inset: 0; z-index: 400;
+      background: rgba(0,0,0,.82); backdrop-filter: blur(5px);
+      align-items: center; justify-content: center; padding: 20px;
+    }
+    #gift-overlay.open { display: flex; }
+    #gift-box-modal {
+      width: 100%; max-width: 340px; text-align: center;
+      background: linear-gradient(160deg, #1b3d26, #0d2818);
+      border: 2px solid var(--gold); border-radius: 24px; padding: 32px 22px 24px;
+      box-shadow: 0 0 46px rgba(255,215,0,.4); animation: promoPop .45s cubic-bezier(.2,1.3,.4,1);
+    }
+    .gift-emoji { font-size: 58px; line-height: 1; animation: promoFloat 2s ease-in-out infinite; }
+    .gift-title { font-size: 18px; font-weight: 900; line-height: 1.45; margin: 12px 0 20px; color: var(--text); }
+
     /* ── NHÀ VÔ ĐỊCH ── */
     .champ-cta {
       width: 100%; padding: 30px 18px; border: 2px solid var(--gold); border-radius: 20px;
@@ -936,6 +952,22 @@
     <button class="btn-primary" id="wheel-spin-btn" onclick="spinWheel()">Quay</button>
     <button class="btn-secondary" id="wheel-try-btn" onclick="trySpin()" style="margin-top:8px">🎮 Quay thử (miễn phí, không tính quà)</button>
     <button class="btn-secondary" onclick="closeWheel()">Đóng</button>
+  </div>
+</div>
+
+<!-- ══════════════ HỘP QUÀ TROLL ══════════════ -->
+<div id="gift-overlay" onclick="closeGift(event)">
+  <div id="gift-box-modal">
+    <div id="gift-closed">
+      <div class="gift-emoji">🎁</div>
+      <div class="gift-title">Bạn nhận được 1 món quà từ<br>Bí thư Đoàn thanh niên XNDV</div>
+      <button class="promo-cta" onclick="openGift()">🎁 Mở quà ngay</button>
+    </div>
+    <div id="gift-reveal" style="display:none">
+      <div class="gift-emoji">🎉</div>
+      <div class="gift-title" id="gift-msg"></div>
+      <button class="promo-later" onclick="closeGift()">Đóng</button>
+    </div>
   </div>
 </div>
 
@@ -1649,7 +1681,7 @@ function enterApp() {
   document.getElementById('bottom-nav').classList.add('show');
   showView('matches');
   renderWinnerBanner();
-  if (!promoShown) { promoShown = true; setTimeout(showPromo, 600); }
+  setTimeout(showGift, 800); // hộp quà troll (chỉ 1 lần/người)
 }
 
 // ── POPUP QUẢNG CÁO VẬT PHẨM ──
@@ -1669,6 +1701,43 @@ function goShopFromPromo() {
 function goChampFromPromo() {
   document.getElementById('promo-overlay').classList.remove('open');
   showView('champ');
+}
+
+// ── HỘP QUÀ TROLL (chỉ hiện 1 lần/người) ──
+const GIFT_MSGS = [
+  'Có cái nịt á, hihi 🩲',
+  'Tự kiếm quà đi, không có gì đâu 😜',
+  'Tặng bạn 1 nụ hôn nhé 💋',
+  'Chúc bạn nhiều may mắn nhé 🍀',
+  'Ở đời có làm thì mới có ăn, không làm mà đòi ăn thì ... 😏'
+];
+let giftShownSession = false;
+function showGift() {
+  if (!currentUser) return;
+  const me = currentUser.id;
+  if (giftShownSession || shop[me]?.giftOpened) return;
+  giftShownSession = true;
+  document.getElementById('gift-reveal').style.display = 'none';
+  document.getElementById('gift-closed').style.display = 'block';
+  document.getElementById('gift-overlay').classList.add('open');
+}
+async function markGiftOpened() {
+  const me = currentUser?.id;
+  if (me && !shop[me]?.giftOpened) {
+    await fbSet(`${DB}/shop/${me}/giftOpened`, true);
+    if (shop[me]) shop[me].giftOpened = true;
+  }
+}
+async function openGift() {
+  document.getElementById('gift-msg').textContent = GIFT_MSGS[Math.floor(Math.random() * GIFT_MSGS.length)];
+  document.getElementById('gift-closed').style.display = 'none';
+  document.getElementById('gift-reveal').style.display = 'block';
+  await markGiftOpened();
+}
+async function closeGift(e) {
+  if (e && e.type === 'click' && e.target !== document.getElementById('gift-overlay')) return;
+  document.getElementById('gift-overlay').classList.remove('open');
+  await markGiftOpened();
 }
 
 function logoutPrompt() {
