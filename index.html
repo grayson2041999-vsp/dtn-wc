@@ -739,6 +739,27 @@
     <p class="section-title">👤 Duyệt tài khoản</p>
     <div id="admin-users-list"></div>
 
+    <!-- TỶ LỆ ĐIỂM -->
+    <p class="section-title" style="margin-top:24px">💱 Tỷ lệ điểm (áp dụng cho trận chấm SAU khi lưu)</p>
+    <div class="admin-score-row" style="gap:8px">
+      <div style="flex:1">
+        <div style="font-size:11px;color:var(--text2);margin-bottom:4px">Đoán ĐÚNG được</div>
+        <input type="number" id="admin-odds-correct" min="0" step="1000" value="50000" style="width:100%">
+      </div>
+      <div style="flex:1">
+        <div style="font-size:11px;color:var(--text2);margin-bottom:4px">Đoán SAI mất</div>
+        <input type="number" id="admin-odds-wrong" min="0" step="1000" value="10000" style="width:100%">
+      </div>
+    </div>
+    <button class="btn-primary" onclick="adminSaveOdds()">💾 Lưu tỷ lệ điểm</button>
+    <p style="font-size:11px;color:var(--text2);margin-top:6px">Trận đã lưu kết quả vẫn giữ tỷ lệ cũ. Tỷ lệ mới chỉ áp dụng cho trận lưu sau đó.</p>
+
+    <!-- NHÀ VÔ ĐỊCH -->
+    <p class="section-title" style="margin-top:24px">👑 Nhà vô địch (nhập thủ công)</p>
+    <select id="admin-champion-select" style="width:100%;padding:14px;background:var(--card2);border:1px solid var(--border);border-radius:var(--r);color:var(--text);font-size:15px;margin-bottom:10px"></select>
+    <button class="btn-primary" onclick="adminSaveChampion()">💾 Lưu nhà vô địch</button>
+    <p style="font-size:11px;color:var(--text2);margin-top:6px">Để trống = tự lấy đội thắng trận chung kết. Lưu đội = chốt nhà vô địch & quyết toán cược.</p>
+
     <!-- NHẬP KẾT QUẢ -->
     <p class="section-title" style="margin-top:24px">Nhập kết quả trận (90 phút)</p>
     <select id="admin-match-select" onchange="onAdminMatchSelect()"></select>
@@ -1025,6 +1046,9 @@ let scores      = {};
 let advances    = {}; // {matchId: '1'|'2'} – đội đi tiếp khi hoà 90 phút
 let shop        = {}; // {uid:{magnifier,star,hearts,spent,heartMatches:{mid:true}}}
 let champBets   = {}; // {uid:{team,stake,odds}} – cược nhà vô địch
+let oddsCfg     = {correct: 50000, wrong: 10000}; // tỷ lệ điểm HIỆN TẠI (admin chỉnh)
+let matchOdds   = {}; // {matchId:{correct,wrong}} – tỷ lệ ĐÃ KHOÁ của từng trận khi chấm
+let championWinner = ''; // nhà vô địch do admin nhập (ưu tiên hơn tự suy từ chung kết)
 
 // ══════════════════════════════════════════════
 //  HELPERS
@@ -1054,8 +1078,16 @@ function heartFreeClaimed(uid) { return !!shop[uid]?.freeHeart; }
 // Vật phẩm x2 (nhân đôi tiền thưởng khi đoán đúng)
 function x2Of(uid)          { return shop[uid]?.x2 || 0; }
 function x2UsedOn(uid, mid)  { return !!shop[uid]?.x2Matches?.[mid]; }
-// Tiền thưởng khi đoán ĐÚNG 1 trận KO: dùng x2 thì gấp đôi
-function koCorrectPts(uid, mid) { return x2UsedOn(uid, mid) ? PTS_CORRECT * 2 : PTS_CORRECT; }
+// Tỷ lệ điểm hiện tại (admin chỉnh) – dạng magnitude dương
+function curCorrect()  { return Number(oddsCfg.correct) || 50000; }
+function curWrongMag() { return Number(oddsCfg.wrong)   || 10000; }
+// Tỷ lệ ĐÃ KHOÁ của 1 trận (lúc chấm); nếu chưa có thì mặc định 50.000/10.000
+function oddsForMatch(mid) { const o = matchOdds[mid]; return o ? {c: Number(o.correct), w: Number(o.wrong)} : {c: 50000, w: 10000}; }
+// Điểm 1 trận cho 1 user theo tỷ lệ {c,w}; x2 nhân đôi phần thắng
+function ptsForResult(uid, mid, ok, odds) {
+  if (!ok) return -odds.w;
+  return (x2UsedOn(uid, mid) ? 2 : 1) * odds.c;
+}
 // Skin con giáp
 function skinById(id) { return SKINS.find(s => s.id === id) || null; }
 function ownsSkin(uid, id) { return !!shop[uid]?.skins?.[id]; }
@@ -1231,8 +1263,8 @@ function champOpenSlot(uid) {
   if (c.team) return null;        // dữ liệu cũ (1 cược) → coi như đã cược
   return c[slot] ? null : slot;   // null nếu đã cược lần này rồi
 }
-// Nhà vô địch (khi đã có kết quả chung kết – trận 104)
-function getChampion() { return koWinner(104, resolveTeams()); }
+// Nhà vô địch: ưu tiên admin nhập, nếu không thì lấy đội thắng chung kết (trận 104)
+function getChampion() { return championWinner || koWinner(104, resolveTeams()); }
 // Danh sách cược vô địch của 1 người (tối đa 2 lần, riêng lẻ)
 const CHAMP_MAX_BETS = 2;
 function userBets(uid) {
@@ -1258,6 +1290,9 @@ function initFirebase() {
     db.ref(`${DB}/advance`).on('value', s => { advances = s.val() || {}; onDataUpdate(); });
     db.ref(`${DB}/shop`).on('value', s => { shop = s.val() || {}; onDataUpdate(); });
     db.ref(`${DB}/champ`).on('value', s => { champBets = s.val() || {}; onDataUpdate(); });
+    db.ref(`${DB}/oddsConfig`).on('value', s => { oddsCfg = s.val() || {correct:50000, wrong:10000}; onDataUpdate(); });
+    db.ref(`${DB}/matchOdds`).on('value', s => { matchOdds = s.val() || {}; onDataUpdate(); });
+    db.ref(`${DB}/championWinner`).on('value', s => { championWinner = s.val() || ''; onDataUpdate(); });
   } catch(e) { showToast('⚠️ Lỗi kết nối Firebase'); }
 }
 function onDataUpdate() {
@@ -1782,42 +1817,42 @@ function setLbMode(el, mode) {
 }
 // Tính điểm theo từng phân hệ. Vòng bảng = trận id<73; Knockout = id>=73 (bỏ trận không tính điểm)
 function phaseStats(uid, mode) {
-  let correct = 0, wrong = 0, x2extra = 0;
+  let correct = 0, wrong = 0, koPts = 0;
   Object.entries(scores[uid] || {}).forEach(([mid, data]) => {
     const id = Number(mid);
     const isKo = id >= 73;
     if (mode === 'ko') {
       if (!isKo) return;
       if (NO_SCORE_MATCHES.includes(id)) return;
+      koPts += (data.points || 0);          // KO: dùng ĐIỂM ĐÃ LƯU (theo tỷ lệ tại lúc chấm)
     } else {
       if (isKo) return;
     }
-    if (data.correct === true) {
-      correct++;
-      if (mode === 'ko' && x2UsedOn(uid, id)) x2extra += PTS_CORRECT; // x2: cộng thêm 50k → tổng 100k
-    } else if (data.correct === false) wrong++;
+    if (data.correct === true) correct++;
+    else if (data.correct === false) wrong++;
   });
-  // Tính lại tiền theo QUY TẮC (không dùng điểm cũ đã lưu):
-  // Vòng bảng: đúng +20.000 / sai -10.000 · Knockout: đúng +50.000 / sai -10.000
-  const cPts = mode === 'ko' ? PTS_CORRECT : GROUP_PTS_CORRECT;
-  const wPts = mode === 'ko' ? PTS_WRONG   : GROUP_PTS_WRONG;
-  let pts = correct * cPts + wrong * wPts + x2extra;
-  const spent = mode === 'ko' ? spentOf(uid) : 0; // tiền mua vật phẩm trừ vào vòng loại trực tiếp
-  let combo = 0, lucky = 0, champ = 0;
-  if (mode === 'ko') {
-    combo = comboBonus(uid);     // thưởng đoán đúng liên tiếp
-    lucky = luckyBonusOf(uid);   // tiền trúng vòng quay lì xì
-    const bets = userBets(uid);  // tối đa 2 cược nhà vô địch, tính riêng lẻ
-    if (bets.length) {
-      const champion = getChampion();
-      bets.forEach(b => {
-        champ -= b.stake;        // đặt cược → trừ tiền cược
-        if (champion && b.team === champion) champ += b.stake * b.odds; // trúng → nhận cược × tỷ lệ
-      });
-    }
+
+  if (mode !== 'ko') {
+    // Vòng bảng: đúng +20.000 / sai -10.000
+    const pts = correct * GROUP_PTS_CORRECT + wrong * GROUP_PTS_WRONG;
+    return {pts, correct, wrong, spent: 0, combo: 0, lucky: 0, champ: 0, hasBet: false};
   }
-  pts = pts - spent + combo + lucky + champ;
-  return {pts, correct, wrong, spent, combo, lucky, champ, hasBet: userBets(uid).length > 0};
+
+  // Knockout: tổng điểm đã lưu + thưởng/cược - tiền mua
+  const spent = spentOf(uid);
+  const combo = comboBonus(uid);
+  const lucky = luckyBonusOf(uid);
+  let champ = 0;
+  const bets = userBets(uid);
+  if (bets.length) {
+    const champion = getChampion();
+    bets.forEach(b => {
+      champ -= b.stake;
+      if (champion && b.team === champion) champ += b.stake * b.odds;
+    });
+  }
+  const pts = koPts - spent + combo + lucky + champ;
+  return {pts, correct, wrong, spent, combo, lucky, champ, hasBet: bets.length > 0};
 }
 function renderLeaderboard() {
   const approved = Object.entries(users).filter(([,u]) => u.approved);
@@ -2310,6 +2345,33 @@ async function adminLogin() {
   document.getElementById('admin-panel').style.display = 'block';
   renderAdminUsers();
   renderAdminMatchSelect();
+  renderAdminOdds();
+  renderAdminChampionSelect();
+}
+function renderAdminOdds() {
+  document.getElementById('admin-odds-correct').value = curCorrect();
+  document.getElementById('admin-odds-wrong').value = curWrongMag();
+}
+async function adminSaveOdds() {
+  const c = parseInt(document.getElementById('admin-odds-correct').value) || 0;
+  const w = parseInt(document.getElementById('admin-odds-wrong').value) || 0;
+  if (c < 0 || w < 0) { showToast('Giá trị không hợp lệ'); return; }
+  await fbSet(`${DB}/oddsConfig`, {correct: c, wrong: w});
+  oddsCfg = {correct: c, wrong: w};
+  showToast(`✅ Tỷ lệ mới: đúng +${c.toLocaleString('vi-VN')} / sai −${w.toLocaleString('vi-VN')} (áp dụng trận sau)`);
+}
+function renderAdminChampionSelect() {
+  const sel = document.getElementById('admin-champion-select');
+  if (!sel) return;
+  const teams = r32Teams().slice().sort((a,b) => a.localeCompare(b, 'vi'));
+  sel.innerHTML = `<option value="">-- (Tự lấy đội thắng chung kết) --</option>` +
+    teams.map(t => `<option value="${t}" ${championWinner===t?'selected':''}>${champFlag(t)} ${t}</option>`).join('');
+}
+async function adminSaveChampion() {
+  const t = document.getElementById('admin-champion-select').value;
+  await fbSet(`${DB}/championWinner`, t || '');
+  championWinner = t || '';
+  showToast(t ? `👑 Đã chốt nhà vô địch: ${t}` : 'Đã xoá nhà vô địch (tự lấy theo chung kết)');
 }
 function renderAdminUsers() {
   if (!isAdmin) return;
@@ -2359,7 +2421,7 @@ async function backfillUser(uid) {
     const pred = getPred(m.id, uid) || DEFAULT_SCORE;
     const pred2 = getPred2(m.id, uid);
     const ok = (pred === results[m.id]) || (!!pred2 && pred2 === results[m.id]);
-    const pts = ok ? koCorrectPts(uid, m.id) : PTS_WRONG;
+    const pts = ptsForResult(uid, m.id, ok, oddsForMatch(m.id)); // dùng tỷ lệ ĐÃ KHOÁ của trận
     const predLabel = (pred2 ? `${pred} / ${pred2}` : pred) + (x2UsedOn(uid, m.id) ? ' ⚡x2' : '');
     await fbSet(`${DB}/scores/${uid}/${m.id}`, {predicted: predLabel, actual: results[m.id], correct: ok, points: pts});
   }
@@ -2367,7 +2429,7 @@ async function backfillUser(uid) {
 
 // Tính lại TOÀN BỘ điểm vòng loại trực tiếp cho tất cả user (ghi đè)
 async function recalculateAll() {
-  if (!confirm('Tính lại toàn bộ điểm vòng loại trực tiếp (+50.000 / -10.000)?')) return;
+  if (!confirm('Tính lại toàn bộ điểm vòng loại trực tiếp theo tỷ lệ đã khoá của từng trận?')) return;
   const approved = Object.entries(users).filter(([,u]) => u.approved && !u.rejected);
   if (!approved.length) { showToast('Chưa có ai được duyệt'); return; }
   showToast('Đang tính lại...');
@@ -2379,7 +2441,7 @@ async function recalculateAll() {
       const pred = getEffectivePred(m.id, uid) || DEFAULT_SCORE;
       const pred2 = getPred2(m.id, uid);
       const ok = (pred === results[m.id]) || (!!pred2 && pred2 === results[m.id]);
-      const pts = ok ? koCorrectPts(uid, m.id) : PTS_WRONG;
+      const pts = ptsForResult(uid, m.id, ok, oddsForMatch(m.id)); // tỷ lệ đã khoá của trận
       const predLabel = (pred2 ? `${pred} / ${pred2}` : pred) + (x2UsedOn(uid, m.id) ? ' ⚡x2' : '');
       await fbSet(`${DB}/scores/${uid}/${m.id}`, {predicted: predLabel, actual: results[m.id], correct: ok, points: pts});
     }
@@ -2481,15 +2543,21 @@ async function adminSaveResult() {
   const approved = Object.entries(users).filter(([,u]) => u.approved);
   const items = [];
   const countsScore = !NO_SCORE_MATCHES.includes(id);  // trận đầu Nam Phi-Canada không tính điểm
-  if (countsScore) for (const [uid, u] of approved) {
-    if (!isUserActive(uid)) continue;
-    const pred = getEffectivePred(id, uid) || DEFAULT_SCORE;
-    const pred2 = getPred2(id, uid);
-    const ok = (pred === actual) || (!!pred2 && pred2 === actual);
-    const pts = ok ? koCorrectPts(uid, id) : PTS_WRONG;
-    const predLabel = (pred2 ? `${pred} / ${pred2}` : pred) + (x2UsedOn(uid, id) ? ' ⚡x2' : '');
-    await fbSet(`${DB}/scores/${uid}/${id}`, {predicted: predLabel, actual, correct: ok, points: pts});
-    items.push({name: u.name, pred: predLabel, ok, pts});
+  if (countsScore) {
+    // KHOÁ tỷ lệ điểm hiện tại cho trận này (trận sau đổi tỷ lệ không ảnh hưởng trận này)
+    const odds = {correct: curCorrect(), wrong: curWrongMag()};
+    await fbSet(`${DB}/matchOdds/${id}`, odds);
+    matchOdds[id] = odds;
+    for (const [uid, u] of approved) {
+      if (!isUserActive(uid)) continue;
+      const pred = getEffectivePred(id, uid) || DEFAULT_SCORE;
+      const pred2 = getPred2(id, uid);
+      const ok = (pred === actual) || (!!pred2 && pred2 === actual);
+      const pts = ptsForResult(uid, id, ok, {c: odds.correct, w: odds.wrong});
+      const predLabel = (pred2 ? `${pred} / ${pred2}` : pred) + (x2UsedOn(uid, id) ? ' ⚡x2' : '');
+      await fbSet(`${DB}/scores/${uid}/${id}`, {predicted: predLabel, actual, correct: ok, points: pts});
+      items.push({name: u.name, pred: predLabel, ok, pts});
+    }
   }
 
   // Đội thắng đã xác định → tự đẩy vào vòng sau (tính lại resolved)
