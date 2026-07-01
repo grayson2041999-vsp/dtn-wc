@@ -818,6 +818,18 @@
       padding: 22px 20px; width: 100%; max-width: 320px; text-align: center;
     }
     #duel-modal-box h3 { font-size: 18px; font-weight: 900; margin-bottom: 2px; }
+    #invite-overlay {
+      display: none; position: fixed; inset: 0; z-index: 420;
+      background: rgba(0,0,0,.82); backdrop-filter: blur(5px);
+      align-items: center; justify-content: center; padding: 20px;
+    }
+    #invite-overlay.open { display: flex; }
+    #invite-box {
+      width: 100%; max-width: 340px; text-align: center;
+      background: linear-gradient(160deg, #3a1a0d, #0d2818);
+      border: 2px solid var(--accent2); border-radius: 24px; padding: 30px 22px 24px;
+      box-shadow: 0 0 46px rgba(255,107,53,.5); animation: promoPop .45s cubic-bezier(.2,1.3,.4,1);
+    }
   </style>
 </head>
 <body>
@@ -1128,6 +1140,17 @@
     <div id="champ-payout" style="font-size:13px;color:var(--gold);font-weight:800;margin-bottom:14px"></div>
     <button class="btn-primary" onclick="confirmChampBet()">✅ Đặt cược</button>
     <button class="btn-secondary" onclick="closeChampModal()">Huỷ</button>
+  </div>
+</div>
+
+<!-- ══════════════ POPUP LỜI MỜI THÁCH ĐẤU ══════════════ -->
+<div id="invite-overlay" onclick="closeInvite(event)">
+  <div id="invite-box">
+    <div class="gift-emoji">⚔️🔥</div>
+    <div class="promo-title" style="font-size:22px">KÈO THƠM! KÈO THƠM!</div>
+    <div id="invite-msg" style="font-size:16px;font-weight:800;color:var(--text);line-height:1.5;margin:10px 0 18px"></div>
+    <button class="promo-cta" onclick="acceptInvite()">⚡ Vào trận ngay</button>
+    <button class="promo-later" onclick="closeInvite()">Để sau</button>
   </div>
 </div>
 
@@ -1722,6 +1745,7 @@ function onDataUpdate() {
   renderWinnerBanner();
   updateDuelBadge();
   maybeHostResolve();
+  maybeInvitePopup();
 }
 
 // Vinh danh người đoán trúng trận gần nhất (chạy ngang cho mọi user thấy)
@@ -3056,6 +3080,31 @@ async function doJpSpin() {
 let duelChallengeTo = null;
 let duelBusy = false;
 const duelSeen = new Set();
+const invitePopupSeen = new Set();
+let currentInviteId = null;
+function maybeInvitePopup() {
+  if (!currentUser) return;
+  const me = currentUser.id;
+  if (myActiveDuel()) return; // đang đấu thì thôi
+  const ov = document.getElementById('invite-overlay');
+  if (!ov || ov.classList.contains('open')) return;
+  const inv = duelsList().find(d => d.status === 'pending' && d.to === me && !invitePopupSeen.has(d.id));
+  if (!inv) return;
+  invitePopupSeen.add(inv.id);
+  currentInviteId = inv.id;
+  document.getElementById('invite-msg').innerHTML =
+    `<b>${users[inv.from]?.name || '?'}</b> đã mời bạn tham gia thách đấu!<br><span style="color:var(--gold)">Đố vui bóng đá · cược ${(inv.stake||0).toLocaleString('vi-VN')}đ</span>`;
+  ov.classList.add('open');
+}
+async function acceptInvite() {
+  const id = currentInviteId;
+  document.getElementById('invite-overlay').classList.remove('open');
+  if (id) { await acceptDuel(id); showView('duel'); }
+}
+function closeInvite(e) {
+  if (e && e.type === 'click' && e.target !== document.getElementById('invite-overlay')) return;
+  document.getElementById('invite-overlay').classList.remove('open');
+}
 
 function renderDuel() {
   if (!currentUser) return;
