@@ -1150,6 +1150,7 @@
     <div class="promo-title" style="font-size:22px">KÈO THƠM! KÈO THƠM!</div>
     <div id="invite-msg" style="font-size:16px;font-weight:800;color:var(--text);line-height:1.5;margin:10px 0 18px"></div>
     <button class="promo-cta" onclick="acceptInvite()">⚡ Vào trận ngay</button>
+    <button class="btn-secondary" onclick="declineInvite()" style="margin-top:10px">❌ Từ chối</button>
     <button class="promo-later" onclick="closeInvite()">Để sau</button>
   </div>
 </div>
@@ -3104,6 +3105,11 @@ async function acceptInvite() {
 function closeInvite(e) {
   if (e && e.type === 'click' && e.target !== document.getElementById('invite-overlay')) return;
   document.getElementById('invite-overlay').classList.remove('open');
+}
+async function declineInvite() {
+  const id = currentInviteId;
+  document.getElementById('invite-overlay').classList.remove('open');
+  if (id) { await declineDuel(id); showToast('Đã từ chối kèo'); }
 }
 
 function renderDuel() {
