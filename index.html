@@ -371,6 +371,34 @@
     }
     #donate-modal-box h3 { font-size: 18px; font-weight: 900; margin-bottom: 2px; }
 
+    /* ── JACKPOT CHUNG KẾT ── */
+    .final-poster {
+      background: linear-gradient(160deg, #2a1f00, #0d2818);
+      border: 2px solid var(--gold); border-radius: var(--r);
+      padding: 16px; margin: 10px 0 8px; text-align: center;
+      box-shadow: 0 0 24px rgba(255,215,0,.35);
+    }
+    .fp-title { font-size: 16px; font-weight: 900; color: var(--gold); text-shadow: 0 0 10px rgba(255,215,0,.5); line-height: 1.3; }
+    .fp-sub { font-size: 11px; color: var(--text2); margin: 6px 0 10px; line-height: 1.4; }
+    .fp-line { font-size: 13px; font-weight: 700; margin: 4px 0; }
+    .fp-win { font-size: 13px; font-weight: 800; color: var(--gold); margin: 6px 0; }
+    .fp-btn {
+      width: 100%; padding: 12px; border: none; border-radius: 12px; cursor: pointer; margin-top: 8px;
+      background: linear-gradient(135deg, var(--gold), #ffae00); color: #000; font-size: 14px; font-weight: 900;
+      animation: jpPulse 1.5s ease-in-out infinite;
+    }
+    #final-modal-overlay {
+      display: none; position: fixed; inset: 0; z-index: 260;
+      background: rgba(0,0,0,.8); backdrop-filter: blur(4px);
+      align-items: center; justify-content: center; padding: 20px;
+    }
+    #final-modal-overlay.open { display: flex; }
+    #final-modal-box {
+      background: var(--card); border: 2px solid var(--gold); border-radius: 20px;
+      padding: 22px 20px; width: 100%; max-width: 320px; text-align: center;
+    }
+    #final-modal-box h3 { font-size: 18px; font-weight: 900; margin-bottom: 2px; }
+
     /* ── ADMIN ── */
     #admin-pwd-input, #admin-match-select {
       width: 100%; padding: 14px; margin-bottom: 12px;
@@ -921,6 +949,22 @@
   </div>
 </div>
 
+<!-- ══════════════ JACKPOT CHUNG KẾT MODAL ══════════════ -->
+<div id="final-modal-overlay" onclick="closeFinalModal(event)">
+  <div id="final-modal-box">
+    <h3>🏆 Đoán tỷ số toàn cuộc</h3>
+    <p class="modal-sub" id="final-modal-sub"></p>
+    <div class="score-inputs">
+      <input type="number" id="final-p1" min="0" max="20" value="0" />
+      <span class="score-sep">–</span>
+      <input type="number" id="final-p2" min="0" max="20" value="0" />
+    </div>
+    <p style="font-size:11px;color:var(--text2);margin-bottom:12px">Tính cả bù giờ (KHÔNG tính loạt luân lưu) · phí ${'20.000'}đ/lượt</p>
+    <button class="btn-primary" onclick="confirmFinalPredict()">✅ Chốt đoán</button>
+    <button class="btn-secondary" onclick="closeFinalModal()">Huỷ</button>
+  </div>
+</div>
+
 <!-- ══════════════ BỐ THÍ MODAL ══════════════ -->
 <div id="donate-modal-overlay" onclick="closeDonate(event)">
   <div id="donate-modal-box">
@@ -994,6 +1038,17 @@
     <select id="admin-champion-select" style="width:100%;padding:14px;background:var(--card2);border:1px solid var(--border);border-radius:var(--r);color:var(--text);font-size:15px;margin-bottom:10px"></select>
     <button class="btn-primary" onclick="adminSaveChampion()">💾 Lưu nhà vô địch</button>
     <p style="font-size:11px;color:var(--text2);margin-top:6px">Để trống = tự lấy đội thắng trận chung kết. Lưu đội = chốt nhà vô địch & quyết toán cược.</p>
+
+    <!-- JACKPOT CHUNG KẾT -->
+    <p class="section-title" style="margin-top:24px">🏆 Kết quả CHUNG KẾT (toàn cuộc, tính cả bù giờ)</p>
+    <div class="admin-score-row">
+      <span style="flex:1;text-align:right;font-size:13px;font-weight:700">Tỷ số toàn cuộc</span>
+      <input type="number" id="admin-final1" min="0" max="20" value="0">
+      <span style="font-size:20px;font-weight:900;color:var(--text2)">–</span>
+      <input type="number" id="admin-final2" min="0" max="20" value="0">
+    </div>
+    <button class="btn-primary" onclick="adminSaveFinal()">💾 Lưu & chia Jackpot chung kết</button>
+    <div id="admin-final-result" style="margin-top:10px;font-size:13px"></div>
 
     <!-- JACKPOT: MỞ/TẮT THEO TRẬN -->
     <p class="section-title" style="margin-top:24px">🎰 Mở / Tắt Jackpot theo trận</p>
@@ -1355,6 +1410,11 @@ let begging     = {}; // {uid:true} – kẻ thất bại đang xin bố thí
 let donations   = {}; // {id:{from,to,amount,ts}} – tiền bố thí
 const DONATE_MAX = 20000;   // bố thí tối đa 20.000đ/lần
 const DONATE_TAX = 0.02;    // người nhận trích 2% cho quỹ
+let finalPreds  = {}; // {uid:{0:'x-y',1:'x-y'}} – đoán tỷ số toàn cuộc trận chung kết
+let finalResult = '';  // tỷ số toàn cuộc CK (admin nhập, tính cả bù giờ)
+const FINAL_STAKE = 20000;   // 20.000đ/lượt
+const FINAL_BONUS = 100000;  // thưởng thêm 100.000đ/lượt đúng
+const FINAL_ID = 104;        // trận chung kết
 
 // ══════════════════════════════════════════════
 //  HELPERS
@@ -1701,6 +1761,50 @@ function warmHeartIds() {
   if (best <= 0) return [];
   return Object.keys(map).filter(uid => map[uid] === best);
 }
+
+// ── JACKPOT CHUNG KẾT WORLD CUP ──
+function finalEntriesOf(uid) {
+  const p = finalPreds[uid]; if (!p) return [];
+  return ['0','1'].map(k => p[k]).filter(s => s);
+}
+function finalOpenSlot(uid) {
+  const p = finalPreds[uid] || {};
+  if (!p['0']) return '0'; if (!p['1']) return '1'; return null;
+}
+function totalFinalEntries() {
+  let n = 0;
+  Object.keys(finalPreds).forEach(uid => { if (users[uid]?.approved) n += finalEntriesOf(uid).length; });
+  return n;
+}
+function finalPot() { return totalFinalEntries() * FINAL_STAKE; }
+function finalCorrectCount() {
+  if (!finalResult) return 0;
+  let n = 0;
+  Object.keys(finalPreds).forEach(uid => { if (users[uid]?.approved) finalEntriesOf(uid).forEach(s => { if (s === finalResult) n++; }); });
+  return n;
+}
+function finalWinnerUids() {
+  if (!finalResult) return [];
+  const set = new Set();
+  Object.keys(finalPreds).forEach(uid => { if (users[uid]?.approved && finalEntriesOf(uid).some(s => s === finalResult)) set.add(uid); });
+  return [...set];
+}
+function finalShare() { const X = finalCorrectCount(); return X > 0 ? Math.round(finalPot() / X) : 0; }
+// Lời/lỗ jackpot chung kết: −20k/lượt; lượt đúng nhận (hũ/X) + 100k
+function finalJackpotNet(uid) {
+  const entries = finalEntriesOf(uid);
+  if (!entries.length) return 0;
+  let net = -FINAL_STAKE * entries.length;
+  if (finalResult) {
+    const X = finalCorrectCount(), pot = finalPot();
+    if (X > 0) {
+      const myCorrect = entries.filter(s => s === finalResult).length;
+      net += myCorrect * (pot / X) + myCorrect * FINAL_BONUS;
+    }
+  }
+  return Math.round(net);
+}
+function hasFinalEntry(uid) { return finalEntriesOf(uid).length > 0; }
 // Danh sách cược vô địch của 1 người (tối đa 2 lần, riêng lẻ)
 const CHAMP_MAX_BETS = 2;
 function userBets(uid) {
@@ -1738,6 +1842,8 @@ function initFirebase() {
     db.ref(`${DB}/duels`).on('value', s => { duels = s.val() || {}; onDataUpdate(); });
     db.ref(`${DB}/begging`).on('value', s => { begging = s.val() || {}; onDataUpdate(); });
     db.ref(`${DB}/donations`).on('value', s => { donations = s.val() || {}; onDataUpdate(); });
+    db.ref(`${DB}/finalPreds`).on('value', s => { finalPreds = s.val() || {}; onDataUpdate(); });
+    db.ref(`${DB}/finalResult`).on('value', s => { finalResult = s.val() || ''; onDataUpdate(); });
   } catch(e) { showToast('⚠️ Lỗi kết nối Firebase'); }
 }
 function onDataUpdate() {
@@ -2194,8 +2300,72 @@ function renderMatchCard(m, resolved) {
       </div>
       ${ready ? jpMatchCardHtml(m) : ''}
       ${predListHtml}
-    </div>
+    </div>${m.id === FINAL_ID ? finalPosterHtml() : ''}
   `;
+}
+// Poster JACKPOT CHUNG KẾT ngay dưới trận chung kết
+function finalPosterHtml() {
+  const me = currentUser.id;
+  const fm = MATCHES.find(x => x.id === FINAL_ID);
+  const resolved = resolveTeams();
+  const ready = teamsResolved(fm, resolved);
+  const locked = isLocked(fm);
+  const pot = finalPot(), n = totalFinalEntries();
+  const myEntries = finalEntriesOf(me);
+  const slot = finalOpenSlot(me);
+
+  let body;
+  if (finalResult) {
+    const winners = finalWinnerUids();
+    const share = finalShare();
+    const iWon = myEntries.some(s => s === finalResult);
+    body = `<div class="fp-line">Tỷ số toàn cuộc: <b>${finalResult}</b> · Hũ ${pot.toLocaleString('vi-VN')}đ · ${n} lượt</div>
+      <div class="fp-win">🏆 ${winners.length ? winners.map(u => starWrap(u, users[u]?.name||'?')).join(', ') : 'Không ai trúng'}${winners.length ? ` · mỗi lượt đúng +${(share+FINAL_BONUS).toLocaleString('vi-VN')}đ` : ''}</div>
+      ${myEntries.length ? `<div style="color:${iWon?'var(--green)':'var(--text2)'};font-weight:700">Bạn đoán ${myEntries.join(' · ')}${iWon?' — TRÚNG! 🎉':''}</div>` : ''}`;
+  } else if (!ready) {
+    body = `<div class="fp-line">⏳ Chờ lộ diện 2 đội chung kết rồi mới đoán được nhé!</div>`;
+  } else if (locked) {
+    body = `<div class="fp-line">🔒 Đã khoá · Hũ ${pot.toLocaleString('vi-VN')}đ · ${n} lượt · chờ kết quả toàn cuộc${myEntries.length?` · bạn đoán ${myEntries.join(' · ')}`:''}</div>`;
+  } else {
+    body = `<div class="fp-line">Hũ hiện tại: <b style="color:var(--gold)">${pot.toLocaleString('vi-VN')}đ</b> · ${n} lượt đoán</div>
+      ${myEntries.length ? `<div class="fp-line">Bạn đã đoán: <b>${myEntries.join(' · ')}</b> (${myEntries.length}/2 lượt)</div>` : ''}
+      ${slot !== null ? `<button class="fp-btn" onclick="openFinalPredict()">🎯 Đoán tỷ số toàn cuộc (${FINAL_STAKE.toLocaleString('vi-VN')}đ)</button>` : `<div class="fp-line" style="color:var(--text2)">Đã dùng đủ 2 lượt</div>`}`;
+  }
+
+  return `<div class="final-poster">
+    <div class="fp-title">🏆 JACKPOT CHUNG KẾT WORLD CUP 🏆</div>
+    <div class="fp-sub">Đoán tỷ số TOÀN CUỘC (tính cả bù giờ) · ${FINAL_STAKE.toLocaleString('vi-VN')}đ/lượt · tối đa 2 lượt · trúng chia hũ + thưởng ${FINAL_BONUS.toLocaleString('vi-VN')}đ/lượt</div>
+    ${body}
+  </div>`;
+}
+function openFinalPredict() {
+  const fm = MATCHES.find(x => x.id === FINAL_ID);
+  if (!teamsResolved(fm, resolveTeams())) { showToast('Chưa đủ 2 đội chung kết'); return; }
+  if (isLocked(fm)) { showToast('Đã khoá dự đoán'); return; }
+  if (finalOpenSlot(currentUser.id) === null) { showToast('Bạn đã dùng đủ 2 lượt'); return; }
+  const rt = resolveTeams()[FINAL_ID];
+  document.getElementById('final-modal-sub').textContent = `${rt.team1} vs ${rt.team2} · lượt ${finalEntriesOf(currentUser.id).length + 1}/2`;
+  document.getElementById('final-p1').value = 0;
+  document.getElementById('final-p2').value = 0;
+  document.getElementById('final-modal-overlay').classList.add('open');
+}
+function closeFinalModal(e) {
+  if (e && e.type === 'click' && e.target !== document.getElementById('final-modal-overlay')) return;
+  document.getElementById('final-modal-overlay').classList.remove('open');
+}
+async function confirmFinalPredict() {
+  const me = currentUser.id;
+  const fm = MATCHES.find(x => x.id === FINAL_ID);
+  if (isLocked(fm)) { showToast('Đã khoá'); return; }
+  const slot = finalOpenSlot(me);
+  if (slot === null) { showToast('Đã dùng đủ 2 lượt'); return; }
+  const s1 = parseInt(document.getElementById('final-p1').value) || 0;
+  const s2 = parseInt(document.getElementById('final-p2').value) || 0;
+  const score = `${s1}-${s2}`;
+  await fbSet(`${DB}/finalPreds/${me}/${slot}`, score);
+  document.getElementById('final-modal-overlay').classList.remove('open');
+  showToast(`✅ Đã đoán ${score} · −${FINAL_STAKE.toLocaleString('vi-VN')}đ`);
+  renderMatches();
 }
 // Khu Jackpot trên thẻ trận
 function jpMatchCardHtml(m) {
@@ -2406,6 +2576,7 @@ function phaseStats(uid, mode) {
   const jackpot = jackpotNet(uid);
   const duel = challengeNet(uid);
   const donate = donationNet(uid);
+  const finalJp = finalJackpotNet(uid);
   let champ = 0;
   const bets = userBets(uid);
   if (bets.length) {
@@ -2415,8 +2586,8 @@ function phaseStats(uid, mode) {
       if (champion && b.team === champion) champ += b.stake * b.odds;
     });
   }
-  const pts = koPts - spent + combo + lucky + champ + jackpot + duel + donate;
-  return {pts, correct, wrong, spent, combo, lucky, champ, jackpot, duel, donate, hasBet: bets.length > 0, hasJp: joinedAnyJackpot(uid), hasDuel: joinedAnyDuel(uid), hasDonation: hasDonation(uid)};
+  const pts = koPts - spent + combo + lucky + champ + jackpot + duel + donate + finalJp;
+  return {pts, correct, wrong, spent, combo, lucky, champ, jackpot, duel, donate, finalJp, hasBet: bets.length > 0, hasJp: joinedAnyJackpot(uid), hasDuel: joinedAnyDuel(uid), hasDonation: hasDonation(uid), hasFinal: hasFinalEntry(uid)};
 }
 function renderLeaderboard() {
   const approved = Object.entries(users).filter(([,u]) => u.approved);
@@ -2424,7 +2595,7 @@ function renderLeaderboard() {
 
   if (lbMode === 'ko') {
     // Vào bảng knockout nếu đã tham gia bất kỳ hoạt động nào
-    rows = rows.filter(r => isUserActive(r.uid) || r.spent > 0 || r.lucky > 0 || r.hasBet || r.hasJp || r.hasDuel || r.hasDonation);
+    rows = rows.filter(r => isUserActive(r.uid) || r.spent > 0 || r.lucky > 0 || r.hasBet || r.hasJp || r.hasDuel || r.hasDonation || r.hasFinal);
   } else {
     // Vòng bảng: chỉ ai có dữ liệu điểm vòng bảng
     rows = rows.filter(r => (r.correct + r.wrong) > 0);
@@ -2464,6 +2635,7 @@ function renderLeaderboard() {
       const jpTxt = (lbMode === 'ko' && p.jackpot) ? ` · 💰${p.jackpot>0?'+':''}${p.jackpot.toLocaleString('vi-VN')}` : '';
       const duelTxt = (lbMode === 'ko' && p.duel) ? ` · ⚔️${p.duel>0?'+':''}${p.duel.toLocaleString('vi-VN')}` : '';
       const donTxt = (lbMode === 'ko' && p.donate) ? ` · 💝${p.donate>0?'+':''}${p.donate.toLocaleString('vi-VN')}` : '';
+      const finTxt = (lbMode === 'ko' && p.finalJp) ? ` · 🏆${p.finalJp>0?'+':''}${p.finalJp.toLocaleString('vi-VN')}` : '';
 
       // Khu vực bố thí
       let begHtml = '';
@@ -2481,7 +2653,7 @@ function renderLeaderboard() {
           <div class="lb-rank r${i+1}">${i < 3 ? crowns[i] : i+1}</div>
           <div style="flex:1">
             <div class="lb-name">${starWrap(p.uid, p.name)}${isMe?'<span class="me-badge">Bạn</span>':''}${isTopSpender(p.uid)?'<span class="spender-badge">🔥 Thánh nướng tiền</span>':''}${p.uid===sponsorUid?'<span class="title-sponsor">🥇 Nhà tài trợ vàng</span>':''}${p.uid===tycoonUid?'<span class="title-tycoon">💰 Đại gia phố núi</span>':''}${kings.includes(p.uid)?'<span class="title-streak">⚡ Streak King</span>':''}${losers.includes(p.uid)?'<span class="title-loser">💩 Kẻ thất bại</span>':''}${warmHearts.includes(p.uid)?'<span class="title-warm">💝 Trái tim ấm áp</span>':''}</div>
-            <div class="lb-sub">${p.correct} đúng · ${p.wrong} sai${spentTxt}${comboTxt}${luckyTxt}${champTxt}${jpTxt}${duelTxt}${donTxt}</div>
+            <div class="lb-sub">${p.correct} đúng · ${p.wrong} sai${spentTxt}${comboTxt}${luckyTxt}${champTxt}${jpTxt}${duelTxt}${donTxt}${finTxt}</div>
           </div>
           <div class="lb-pts ${ptsClass}">${fmtPts(p.pts)}đ</div>
         </div>${begHtml}`;
@@ -2794,11 +2966,11 @@ function closeWheel(e) {
   document.getElementById('wheel-overlay').classList.remove('open');
 }
 function pickOutcome() {
-  // Xác suất theo thứ tự WHEEL: 🍀2 · +5k 2 · quay lại 1 · +20k 1 · skin 1 · +7k 1 · voucher 2 · +100k 90
-  const weights = [2, 2, 1, 1, 1, 1, 2, 90];
+  // Xác suất theo thứ tự WHEEL: 🍀34 · +5k 22 · quay lại 11 · +20k 6 · skin 5 · +7k 12 · voucher 9 · +100k 1
+  const weights = [34, 22, 11, 6, 5, 12, 9, 1];
   let r = Math.random() * 100, acc = 0;
   for (let i = 0; i < weights.length; i++) { acc += weights[i]; if (r < acc) return i; }
-  return 7;
+  return 0;
 }
 // Quay thật: trừ tiền/lượt, trúng nhận quà
 async function spinWheel() {
@@ -3385,6 +3557,26 @@ async function adminLogin() {
   renderAdminChampionSelect();
   renderAdminJpSelect();
   renderAdminJpEnSelect();
+  renderAdminFinal();
+}
+function renderAdminFinal() {
+  if (finalResult && finalResult.includes('-')) {
+    const [a,b] = finalResult.split('-');
+    document.getElementById('admin-final1').value = a;
+    document.getElementById('admin-final2').value = b;
+  }
+}
+async function adminSaveFinal() {
+  const s1 = parseInt(document.getElementById('admin-final1').value) || 0;
+  const s2 = parseInt(document.getElementById('admin-final2').value) || 0;
+  const score = `${s1}-${s2}`;
+  await fbSet(`${DB}/finalResult`, score);
+  finalResult = score;
+  const w = finalWinnerUids(), share = finalShare();
+  document.getElementById('admin-final-result').innerHTML = w.length
+    ? `<span style="color:var(--gold);font-weight:800">🏆 ${w.map(u=>users[u]?.name||'?').join(', ')} trúng · mỗi lượt đúng +${(share+FINAL_BONUS).toLocaleString('vi-VN')}đ (hũ ${finalPot().toLocaleString('vi-VN')}đ chia ${finalCorrectCount()} lượt)</span>`
+    : `<span style="color:var(--text2)">Chưa ai đoán trúng tỷ số toàn cuộc này</span>`;
+  showToast(`✅ Đã lưu kết quả chung kết ${score}`);
 }
 function renderAdminJpEnSelect() {
   const sel = document.getElementById('admin-jpen-select');
