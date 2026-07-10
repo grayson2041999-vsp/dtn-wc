@@ -2311,25 +2311,38 @@ function finalPosterHtml() {
   const ready = teamsResolved(fm, resolved);
   const locked = isLocked(fm);
   const pot = finalPot(), n = totalFinalEntries();
-  const myEntries = finalEntriesOf(me);
-  const slot = finalOpenSlot(me);
+  const slotKeys = ['0','1'].filter(k => finalPreds[me]?.[k]);
+  const nMine = slotKeys.length;
+  const scoreOf = k => (typeof finalPreds[me]?.[k] === 'string') ? finalPreds[me][k] : null;
 
   let body;
   if (finalResult) {
     const winners = finalWinnerUids();
     const share = finalShare();
-    const iWon = myEntries.some(s => s === finalResult);
+    const myScores = slotKeys.map(scoreOf).filter(Boolean);
+    const iWon = myScores.some(s => s === finalResult);
     body = `<div class="fp-line">Tỷ số toàn cuộc: <b>${finalResult}</b> · Hũ ${pot.toLocaleString('vi-VN')}đ · ${n} lượt</div>
       <div class="fp-win">🏆 ${winners.length ? winners.map(u => starWrap(u, users[u]?.name||'?')).join(', ') : 'Không ai trúng'}${winners.length ? ` · mỗi lượt đúng +${(share+FINAL_BONUS).toLocaleString('vi-VN')}đ` : ''}</div>
-      ${myEntries.length ? `<div style="color:${iWon?'var(--green)':'var(--text2)'};font-weight:700">Bạn đoán ${myEntries.join(' · ')}${iWon?' — TRÚNG! 🎉':''}</div>` : ''}`;
-  } else if (!ready) {
-    body = `<div class="fp-line">⏳ Chờ lộ diện 2 đội chung kết rồi mới đoán được nhé!</div>`;
+      ${myScores.length ? `<div style="color:${iWon?'var(--green)':'var(--text2)'};font-weight:700">Bạn đoán ${myScores.join(' · ')}${iWon?' — TRÚNG! 🎉':''}</div>` : ''}`;
   } else if (locked) {
-    body = `<div class="fp-line">🔒 Đã khoá · Hũ ${pot.toLocaleString('vi-VN')}đ · ${n} lượt · chờ kết quả toàn cuộc${myEntries.length?` · bạn đoán ${myEntries.join(' · ')}`:''}</div>`;
+    const disp = slotKeys.map(k => scoreOf(k) || '(chưa đoán)');
+    body = `<div class="fp-line">🔒 Đã khoá · Hũ ${pot.toLocaleString('vi-VN')}đ · ${n} lượt · chờ kết quả toàn cuộc${disp.length?` · bạn: ${disp.join(' · ')}`:''}</div>`;
+  } else if (!ready) {
+    // Chưa biết 2 đội → cho ĐĂNG KÝ trước để giữ lượt
+    body = `<div class="fp-line">📝 Chưa biết 2 đội — <b>đăng ký trước để giữ lượt</b>, khi có 2 đội sẽ đoán tỷ số!</div>
+      <div class="fp-line">Hũ hiện tại: <b style="color:var(--gold)">${pot.toLocaleString('vi-VN')}đ</b> · ${n} lượt · bạn đã đăng ký <b>${nMine}/2</b></div>
+      ${nMine < 2 ? `<button class="fp-btn" onclick="registerFinal()">➕ Đăng ký lượt đoán (${FINAL_STAKE.toLocaleString('vi-VN')}đ)</button>` : `<div class="fp-line" style="color:var(--green)">✅ Đã đăng ký đủ 2 lượt — chờ 2 đội để đoán</div>`}`;
   } else {
-    body = `<div class="fp-line">Hũ hiện tại: <b style="color:var(--gold)">${pot.toLocaleString('vi-VN')}đ</b> · ${n} lượt đoán</div>
-      ${myEntries.length ? `<div class="fp-line">Bạn đã đoán: <b>${myEntries.join(' · ')}</b> (${myEntries.length}/2 lượt)</div>` : ''}
-      ${slot !== null ? `<button class="fp-btn" onclick="openFinalPredict()">🎯 Đoán tỷ số toàn cuộc (${FINAL_STAKE.toLocaleString('vi-VN')}đ)</button>` : `<div class="fp-line" style="color:var(--text2)">Đã dùng đủ 2 lượt</div>`}`;
+    // Đã có 2 đội → đoán tỷ số cho từng lượt
+    const slotRows = slotKeys.map(k => {
+      const sc = scoreOf(k);
+      return sc
+        ? `<div class="fp-line">Lượt đã đoán: <b>${sc}</b> ✅</div>`
+        : `<button class="fp-btn" onclick="openFinalPredict('${k}')">🎯 Đoán tỷ số lượt đã đăng ký</button>`;
+    }).join('');
+    body = `<div class="fp-line">Hũ hiện tại: <b style="color:var(--gold)">${pot.toLocaleString('vi-VN')}đ</b> · ${n} lượt</div>
+      ${slotRows}
+      ${nMine < 2 ? `<button class="fp-btn" onclick="openFinalPredict('new')">➕ Đăng ký & đoán thêm (${FINAL_STAKE.toLocaleString('vi-VN')}đ)</button>` : (slotKeys.every(scoreOf) ? `<div class="fp-line" style="color:var(--text2)">Đã dùng đủ 2 lượt</div>` : '')}`;
   }
 
   return `<div class="final-poster">
@@ -2338,15 +2351,32 @@ function finalPosterHtml() {
     ${body}
   </div>`;
 }
-function openFinalPredict() {
+// Đăng ký trước 1 lượt (giữ chỗ, đoán tỷ số sau)
+async function registerFinal() {
+  const me = currentUser.id;
+  const fm = MATCHES.find(x => x.id === FINAL_ID);
+  if (isLocked(fm)) { showToast('Đã khoá'); return; }
+  const slot = finalOpenSlot(me);
+  if (slot === null) { showToast('Đã đăng ký đủ 2 lượt'); return; }
+  if (!confirm(`Đăng ký 1 lượt đoán chung kết với ${FINAL_STAKE.toLocaleString('vi-VN')}đ?\n(Đoán tỷ số sau khi có 2 đội)`)) return;
+  await fbSet(`${DB}/finalPreds/${me}/${slot}`, true);
+  showToast(`✅ Đã đăng ký giữ lượt · −${FINAL_STAKE.toLocaleString('vi-VN')}đ`);
+  renderMatches();
+}
+let finalPredictSlot = null;
+function openFinalPredict(which) {
   const fm = MATCHES.find(x => x.id === FINAL_ID);
   if (!teamsResolved(fm, resolveTeams())) { showToast('Chưa đủ 2 đội chung kết'); return; }
   if (isLocked(fm)) { showToast('Đã khoá dự đoán'); return; }
-  if (finalOpenSlot(currentUser.id) === null) { showToast('Bạn đã dùng đủ 2 lượt'); return; }
+  const slot = which === 'new' ? finalOpenSlot(currentUser.id) : which;
+  if (slot === null || slot === undefined) { showToast('Đã đủ 2 lượt'); return; }
+  finalPredictSlot = slot;
   const rt = resolveTeams()[FINAL_ID];
-  document.getElementById('final-modal-sub').textContent = `${rt.team1} vs ${rt.team2} · lượt ${finalEntriesOf(currentUser.id).length + 1}/2`;
-  document.getElementById('final-p1').value = 0;
-  document.getElementById('final-p2').value = 0;
+  document.getElementById('final-modal-sub').textContent = `${rt.team1} vs ${rt.team2}`;
+  const cur = finalPreds[currentUser.id]?.[slot];
+  const [g1,g2] = (typeof cur === 'string') ? cur.split('-') : ['0','0'];
+  document.getElementById('final-p1').value = g1;
+  document.getElementById('final-p2').value = g2;
   document.getElementById('final-modal-overlay').classList.add('open');
 }
 function closeFinalModal(e) {
@@ -2357,14 +2387,15 @@ async function confirmFinalPredict() {
   const me = currentUser.id;
   const fm = MATCHES.find(x => x.id === FINAL_ID);
   if (isLocked(fm)) { showToast('Đã khoá'); return; }
-  const slot = finalOpenSlot(me);
-  if (slot === null) { showToast('Đã dùng đủ 2 lượt'); return; }
+  const slot = finalPredictSlot;
+  if (slot === null || slot === undefined) return;
   const s1 = parseInt(document.getElementById('final-p1').value) || 0;
   const s2 = parseInt(document.getElementById('final-p2').value) || 0;
   const score = `${s1}-${s2}`;
+  const wasNew = !finalPreds[me]?.[slot]; // slot chưa tồn tại → tính phí 20k (đăng ký + đoán luôn)
   await fbSet(`${DB}/finalPreds/${me}/${slot}`, score);
   document.getElementById('final-modal-overlay').classList.remove('open');
-  showToast(`✅ Đã đoán ${score} · −${FINAL_STAKE.toLocaleString('vi-VN')}đ`);
+  showToast(`✅ Đã đoán ${score}${wasNew ? ` · −${FINAL_STAKE.toLocaleString('vi-VN')}đ` : ''}`);
   renderMatches();
 }
 // Khu Jackpot trên thẻ trận
