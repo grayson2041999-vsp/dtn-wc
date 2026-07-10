@@ -1258,7 +1258,7 @@ const ADMIN_PASSWORD = '443004';
 const PTS_CORRECT    = 50000;   // đoán đúng vòng loại trực tiếp = +50.000
 const PTS_WRONG      = -10000;  // đoán sai = -10.000
 const DEFAULT_SCORE  = '5-5';
-const NO_SCORE_MATCHES = [73];  // Trận đầu Nam Phi vs Canada: KHÔNG tính điểm
+const NO_SCORE_MATCHES = [73, 104];  // 73: Nam Phi-Canada · 104: Chung kết (chỉ chơi Jackpot chung kết) — KHÔNG tính điểm thường
 // Quy tắc tính tiền VÒNG BẢNG: đúng +20.000 / sai -10.000 mỗi trận
 const GROUP_PTS_CORRECT = 20000;
 const GROUP_PTS_WRONG   = -10000;
@@ -2222,7 +2222,8 @@ function renderMatchCard(m, resolved) {
   const d2 = dispTeam(m, 2, resolved);
   const locked = isLocked(m);
   const hasResult = results[m.id];
-  const predictable = ready && !locked;
+  const isFinal = m.id === FINAL_ID;               // Chung kết: chỉ chơi Jackpot chung kết, KHÔNG đoán thường
+  const predictable = ready && !locked && !isFinal;
   const myPred = getPred(m.id, currentUser.id);
   const myPred2 = getPred2(m.id, currentUser.id);
   const effPred = getEffectivePred(m.id, currentUser.id);
@@ -2250,12 +2251,16 @@ function renderMatchCard(m, resolved) {
     if (effPred) predHtml = `<span class="my-pred">Tôi: <span class="sc">${effPred}${bk}</span>${!myPred?' <em style="font-size:10px;color:var(--text2)">(auto)</em>':''}</span>`;
   } else {
     statusHtml = `<span class="match-status open">${fmtKickoffVN(m.kickoff)}</span>`;
-    predHtml = myPred
-      ? `<span class="my-pred">Tôi: <span class="sc">${myPred}${bk}</span></span>`
-      : `<span class="my-pred" style="color:var(--accent2)">Chưa đoán</span>`;
+    if (isFinal) {
+      predHtml = `<span class="my-pred" style="color:var(--accent2)">🎰 Chơi Jackpot bên dưới</span>`;
+    } else {
+      predHtml = myPred
+        ? `<span class="my-pred">Tôi: <span class="sc">${myPred}${bk}</span></span>`
+        : `<span class="my-pred" style="color:var(--accent2)">Chưa đoán</span>`;
+    }
   }
 
-  const predCountHtml = `<span class="pred-count" onclick="togglePreds(event,${m.id})">${predCount}/${approvedCount}</span>`;
+  const predCountHtml = isFinal ? '' : `<span class="pred-count" onclick="togglePreds(event,${m.id})">${predCount}/${approvedCount}</span>`;
 
   // Phân bố tỷ số (chỉ khi có Kính lúp)
   let distHtml = '';
@@ -2266,7 +2271,7 @@ function renderMatchCard(m, resolved) {
     if (entries.length) distHtml = `<div class="score-dist">${entries.map(([s,c]) => `<span class="sd">${c}× ${s}</span>`).join('')}</div>`;
   }
   // Danh sách người được duyệt. Có Kính lúp (hoặc của chính mình) → hiện tỷ số.
-  const predListHtml = `<div class="predictor-list" id="plist-${m.id}" style="display:none;flex-direction:column;align-items:flex-start">
+  const predListHtml = isFinal ? '' : `<div class="predictor-list" id="plist-${m.id}" style="display:none;flex-direction:column;align-items:flex-start">
     ${distHtml}
     <div style="display:flex;flex-wrap:wrap;gap:6px">
     ${approvedUsers.map(([uid, u]) => {
@@ -2298,7 +2303,7 @@ function renderMatchCard(m, resolved) {
         ${statusHtml}
         <div style="display:flex;align-items:center;gap:8px">${predCountHtml}${predHtml}</div>
       </div>
-      ${ready ? jpMatchCardHtml(m) : ''}
+      ${(ready && !isFinal) ? jpMatchCardHtml(m) : ''}
       ${predListHtml}
     </div>${m.id === FINAL_ID ? finalPosterHtml() : ''}
   `;
