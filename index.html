@@ -225,6 +225,38 @@
     }
     .match-card:not(.locked) { cursor: pointer; }
     .match-card:not(.locked):active { border-color: var(--accent2); }
+    /* ===== BANNER CHUNG KẾT ===== */
+    .final-hero-crown {
+      text-align: center; font-size: 15px; font-weight: 900; letter-spacing: 1px;
+      margin: 4px 0 -4px; padding-bottom: 2px;
+      background: linear-gradient(90deg,#ffd700,#ff8a00,#ff3d3d,#ff8a00,#ffd700);
+      background-size: 200% auto; -webkit-background-clip: text; background-clip: text;
+      -webkit-text-fill-color: transparent; animation: heroShine 3s linear infinite;
+    }
+    @keyframes heroShine { to { background-position: 200% center; } }
+    .match-card.final-hero {
+      border: 2px solid transparent; border-radius: 18px; padding: 18px 16px;
+      background:
+        linear-gradient(#0a0f0c,#0a0f0c) padding-box,
+        linear-gradient(135deg,#ffd700,#ff8a00,#ff3d3d,#ffd700) border-box;
+      box-shadow: 0 0 22px rgba(255,138,0,.28); opacity: 1 !important;
+      animation: heroPulse 2.6s ease-in-out infinite;
+    }
+    @keyframes heroPulse {
+      0%,100% { box-shadow: 0 0 18px rgba(255,138,0,.22); }
+      50%     { box-shadow: 0 0 30px rgba(255,61,61,.40); }
+    }
+    .match-card.final-hero .team-name { font-size: 17px; }
+    .match-card.final-hero .vs { color: var(--gold); }
+    .group-badge.final-badge {
+      background: linear-gradient(135deg,#ffd700,#ff8a00); color: #1a0f00; }
+    .group-badge.bronze-badge {
+      background: linear-gradient(135deg,#cd7f32,#e0a060); color: #1a0f00; }
+    .show-past-btn {
+      background: none; border: 1px solid var(--border); border-radius: 20px;
+      color: var(--text2); font-size: 12px; font-weight: 700; padding: 8px 18px; cursor: pointer;
+    }
+    .show-past-btn:active { border-color: var(--accent2); }
     .group-badge {
       position: absolute; top: 10px; right: 12px;
       font-size: 10px; font-weight: 800; letter-spacing: 1px;
@@ -2152,11 +2184,18 @@ function renderCurrentView() {
 //  MATCHES
 // ══════════════════════════════════════════════
 let showAllResults = false;
+let showPast = false;                 // false = chỉ hiện trận hạng 3 + chung kết
+const FINALE_IDS = [103, 104];        // 103: tranh hạng 3 · 104: chung kết
 
 function toggleShowAll() {
   showAllResults = !showAllResults;
   const btn = document.getElementById('btn-show-all');
   if (btn) btn.textContent = showAllResults ? 'Ẩn trận thua' : 'Hiển thị tất cả';
+  renderMatches();
+}
+
+function toggleShowPast() {
+  showPast = !showPast;
   renderMatches();
 }
 
@@ -2174,6 +2213,20 @@ function setFilter(el, f) {
 function renderMatches() {
   if (!currentUser) return;
   const resolved = resolveTeams();
+  const el = document.getElementById('matches-list');
+
+  // ── CHẾ ĐỘ CUỐI GIẢI: mặc định chỉ hiện tranh hạng 3 + chung kết ──
+  if (!showPast) {
+    const finale = MATCHES.filter(m => FINALE_IDS.includes(m.id))
+                          .sort((a,b) => a.id - b.id);   // 103 trước, 104 (chung kết) sau
+    const cards = finale.map(m => renderMatchCard(m, resolved)).join('');
+    el.innerHTML = cards + `
+      <div style="text-align:center;margin:18px 0 8px">
+        <button class="show-past-btn" onclick="toggleShowPast()">🔙 Xem lại các trận đã đá</button>
+      </div>`;
+    return;
+  }
+
   let list = MATCHES;
   if (currentFilter === 'open')    list = MATCHES.filter(m => teamsResolved(m,resolved) && !isLocked(m) && !results[m.id]);
   if (currentFilter === 'pending') list = MATCHES.filter(m => teamsResolved(m,resolved) && !isLocked(m) && !getPred(m.id, currentUser.id));
@@ -2193,9 +2246,13 @@ function renderMatches() {
   const byRound = {}; const order = [];
   list.forEach(m => { if (!byRound[m.round]) { byRound[m.round] = []; order.push(m.round); } byRound[m.round].push(m); });
 
-  const el = document.getElementById('matches-list');
+  // Nút thu gọn về 2 trận cuối
+  const collapseHtml = `
+    <div style="text-align:center;margin:8px 0 4px">
+      <button class="show-past-btn" onclick="toggleShowPast()">🏆 Chỉ xem 2 trận cuối</button>
+    </div>`;
 
-  // Nút hiển thị tất cả
+  // Nút hiển thị tất cả (trận thua)
   const btnHtml = lostCount > 0 ? `
     <div style="text-align:center;margin:12px 0">
       <button id="btn-show-all" onclick="toggleShowAll()"
@@ -2205,7 +2262,7 @@ function renderMatches() {
       </button>
     </div>` : '';
 
-  if (!list.length && !lostCount) { el.innerHTML = '<p class="empty-msg">Không có trận nào</p>'; return; }
+  if (!list.length && !lostCount) { el.innerHTML = collapseHtml + '<p class="empty-msg">Không có trận nào</p>'; return; }
 
   const matchesHtml = list.length
     ? order.map(r => `
@@ -2214,7 +2271,7 @@ function renderMatches() {
       `).join('')
     : '<p class="empty-msg" style="padding:20px 0">Chưa có trận thắng nào</p>';
 
-  el.innerHTML = matchesHtml + btnHtml;
+  el.innerHTML = collapseHtml + matchesHtml + btnHtml;
 }
 function renderMatchCard(m, resolved) {
   const ready  = teamsResolved(m, resolved);
@@ -2291,9 +2348,18 @@ function renderMatchCard(m, resolved) {
     ${!mag?'<div style="font-size:11px;color:var(--text2);margin-top:8px">🔍 Mua <b>Kính lúp</b> ở mục Vật phẩm để xem tỷ số của mọi người</div>':''}
   </div>`;
 
+  const isBronze = m.id === 103;
+  const badge = isFinal
+    ? `<span class="group-badge final-badge">🏆 CHUNG KẾT</span>`
+    : isBronze
+      ? `<span class="group-badge bronze-badge">🥉 HẠNG 3</span>`
+      : `<span class="group-badge">Trận ${m.id-72}</span>`;
+  const crown = isFinal ? `<div class="final-hero-crown">🏆 CHUNG KẾT WORLD CUP 2026 🏆</div>` : '';
+
   return `
-    <div class="match-card ${predictable?'':'locked'} ${hasResult?'has-result':''}" ${predictable?`onclick="openModal(${m.id})"`:''}>
-      <span class="group-badge">Trận ${m.id-72}</span>
+    ${crown}
+    <div class="match-card ${predictable?'':'locked'} ${hasResult?'has-result':''} ${isFinal?'final-hero':''}" ${predictable?`onclick="openModal(${m.id})"`:''}>
+      ${badge}
       <div class="match-teams">
         <span class="team-name left ${d1.tbd?'tbd':''}">${d1.name}</span>
         <span class="vs">VS</span>
