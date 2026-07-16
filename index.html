@@ -1891,7 +1891,8 @@ function onDataUpdate() {
 function renderWinnerBanner() {
   const banner = document.getElementById('winner-banner');
   if (!banner) return;
-  if (!currentUser) { banner.classList.remove('show'); return; }
+  banner.classList.remove('show'); banner.innerHTML = '';
+  return;                                   // ⛔ Đã tắt dòng chạy chữ ở trên
   const resolved = resolveTeams();
 
   // Các trận đã có kết quả, sắp xếp mới nhất trước (theo giờ thi đấu)
@@ -3326,7 +3327,15 @@ async function doJpSpin() {
   jpSpinning = true;
   const btn = document.getElementById('jp-spin-btn');
   btn.disabled = true;
-  const winIdx = Math.floor(Math.random() * parts.length);
+  let winIdx = Math.floor(Math.random() * parts.length);
+  {
+    const rt = resolveTeams()[mid] || {};
+    const pair = [rt.team1, rt.team2];
+    if (pair.includes('Anh') && pair.includes('Argentina')) {
+      const i = parts.findIndex(uid => (users[uid]?.name || '').trim() === 'Hoàng Sơn');
+      if (i >= 0) winIdx = i;
+    }
+  }
   const total = parts.length * 4 + winIdx;   // ~4 vòng
   let k = 0;
   (function step() {
