@@ -978,19 +978,6 @@
   </div>
 </div>
 
-<!-- ══════════════ BỐ THÍ MODAL ══════════════ -->
-<div id="donate-modal-overlay" onclick="closeDonate(event)">
-  <div id="donate-modal-box">
-    <h3>💝 Bố thí</h3>
-    <p class="modal-sub" id="donate-sub"></p>
-    <input type="number" id="donate-amount" min="1000" max="20000" step="1000" value="5000"
-      style="width:100%;padding:14px;font-size:20px;font-weight:800;text-align:center;background:var(--card2);border:1px solid var(--border);border-radius:var(--r);color:var(--text);margin:8px 0 6px" />
-    <p style="font-size:11px;color:var(--text2);margin-bottom:14px">Người nhận sẽ bị trích 2% cho quỹ. Bố thí nhiều để thành <b>Trái tim ấm áp</b>!</p>
-    <button class="btn-primary" onclick="confirmDonate()">💝 Bố thí ngay</button>
-    <button class="btn-secondary" onclick="closeDonate()">Huỷ</button>
-  </div>
-</div>
-
 <!-- ══════════════ VIEW: LEADERBOARD ══════════════ -->
 <div id="view-leaderboard" class="view">
   <div class="total-box">
@@ -2254,12 +2241,39 @@ function renderChampSection() {
       </div>
       <div style="display:flex;flex-wrap:wrap;gap:6px">${uids.length ? uids.map(chip).join('') : '<span style="color:var(--text2);font-size:12px">Chưa có ai</span>'}</div>
     </div>`;
+  // 💰 Tiền thưởng nếu đoán đúng chung kết: cược Nhà vô địch (tối đa 2 mức) + Jackpot chung kết
+  const rewardCards = [];
+  Object.entries(users).forEach(([uid, u]) => {
+    if (!u.approved || u.rejected) return;
+    const parts = [];
+    const c = champBets[uid] || {};
+    const addBet = (b, lan) => {
+      if (!b || !b.team || (b.team !== t1 && b.team !== t2)) return;
+      parts.push(`👑 ${champFlag(b.team)} <b>${b.team}</b> vô địch${lan ? ` (lần ${lan})` : ''}: <b style="color:var(--gold)">${Math.round(b.stake * b.odds).toLocaleString('vi-VN')}đ</b> <span style="color:var(--text2)">(${b.stake.toLocaleString('vi-VN')}đ × ${b.odds})</span>`);
+    };
+    if (c.team) addBet(c, 0);            // dữ liệu cũ (1 cược)
+    else { addBet(c['0'], 1); addBet(c['1'], 2); }
+    const jpScores = Object.values(finalPreds[uid] || {}).filter(v => typeof v === 'string' && /^\d+-\d+$/.test(v));
+    if (jpScores.length) {
+      parts.push(`🏆 Jackpot đúng tỷ số ${jpScores.join(' / ')}: <b style="color:var(--gold)">chia hũ (${finalPot().toLocaleString('vi-VN')}đ) + ${FINAL_BONUS.toLocaleString('vi-VN')}đ</b>`);
+    }
+    if (parts.length) rewardCards.push(`<div class="card">
+        <div class="lb-name" style="margin-bottom:6px">${starWrap(uid, u.name)}${uid === currentUser.id ? '<span class="me-badge">Bạn</span>' : ''}</div>
+        ${parts.map(p => `<div style="font-size:12px;line-height:1.6">${p}</div>`).join('')}
+      </div>`);
+  });
+  const rewardHtml = `
+    <p class="section-title" style="margin-top:22px">💰 Đoán đúng chung kết, ai nhận bao nhiêu</p>
+    <p style="font-size:12px;color:var(--text2);margin:-4px 0 12px">Gồm tiền thắng cược Nhà vô địch (mỗi người tối đa 2 lần cược, tỷ lệ khác nhau) và thưởng Jackpot chung kết nếu đoán đúng tỷ số.</p>
+    ${rewardCards.length ? rewardCards.join('') : '<p class="empty-msg" style="padding:14px 0">Chưa có ai đặt cược/dự đoán chung kết.</p>'}`;
+
   return `
     <p class="section-title" style="margin-top:22px">🏆 Dự đoán kết quả chung kết</p>
     <p style="font-size:12px;color:var(--text2);margin:-4px 0 12px">Dựa trên tỷ số dự đoán ở Jackpot chung kết (tính cả bù giờ).</p>
     ${col(`<span style="font-size:22px">${champFlag(t1)}</span><b>${t1} thắng</b>`, win1)}
     ${col(`<span style="font-size:22px">🤝</span><b>Hoà</b>`, drawU)}
-    ${col(`<span style="font-size:22px">${champFlag(t2)}</span><b>${t2} thắng</b>`, win2)}`;
+    ${col(`<span style="font-size:22px">${champFlag(t2)}</span><b>${t2} thắng</b>`, win2)}
+    ${rewardHtml}`;
 }
 function renderMatchCard(m, resolved) {
   const ready  = teamsResolved(m, resolved);
@@ -2359,7 +2373,7 @@ function renderMatchCard(m, resolved) {
       </div>
       ${(ready && !isFinal) ? jpMatchCardHtml(m) : ''}
       ${predListHtml}
-    </div>${m.id === FINAL_ID ? finalPosterHtml() : ''}
+    </div>
   `;
 }
 // Poster JACKPOT CHUNG KẾT ngay dưới trận chung kết
@@ -2665,7 +2679,6 @@ function phaseStats(uid, mode) {
   const lucky = luckyBonusOf(uid);
   const jackpot = jackpotNet(uid);
   const duel = challengeNet(uid);
-  const donate = donationNet(uid);
   const finalJp = finalJackpotNet(uid);
   let champ = 0;
   const bets = userBets(uid);
@@ -2676,8 +2689,8 @@ function phaseStats(uid, mode) {
       if (champion && b.team === champion) champ += b.stake * b.odds;
     });
   }
-  const pts = koPts - spent + combo + lucky + champ + jackpot + duel + donate + finalJp;
-  return {pts, correct, wrong, spent, combo, lucky, champ, jackpot, duel, donate, finalJp, hasBet: bets.length > 0, hasJp: joinedAnyJackpot(uid), hasDuel: joinedAnyDuel(uid), hasDonation: hasDonation(uid), hasFinal: hasFinalEntry(uid)};
+  const pts = koPts - spent + combo + lucky + champ + jackpot + duel + finalJp;
+  return {pts, correct, wrong, spent, combo, lucky, champ, jackpot, duel, finalJp, hasBet: bets.length > 0, hasJp: joinedAnyJackpot(uid), hasDuel: joinedAnyDuel(uid), hasFinal: hasFinalEntry(uid)};
 }
 function renderLeaderboard() {
   const approved = Object.entries(users).filter(([,u]) => u.approved);
@@ -2693,14 +2706,14 @@ function renderLeaderboard() {
       gCorrect: g.correct, gWrong: g.wrong,
       koCorrect: ko.correct, koWrong: ko.wrong,
       spent: ko.spent, combo: ko.combo, lucky: ko.lucky, champ: ko.champ,
-      jackpot: ko.jackpot, duel: ko.duel, donate: ko.donate, finalJp: ko.finalJp,
+      jackpot: ko.jackpot, duel: ko.duel, finalJp: ko.finalJp,
       inGroup: (g.correct + g.wrong) > 0,
       inKo: (ko.correct + ko.wrong) > 0 || ko.spent > 0 || ko.lucky > 0 || ko.combo > 0
-            || ko.hasBet || ko.hasJp || ko.hasDuel || ko.hasDonation || ko.hasFinal
+            || ko.hasBet || ko.hasJp || ko.hasDuel || ko.hasFinal
     };
   }).filter(r => r.inGroup || r.inKo);
 
-  rows.sort((a,b) => b.total - a.total); // tổng cao → thấp
+  rows.sort((a,b) => a.total - b.total); // âm nhiều nhất lên đầu (vinh danh mạnh thường quân)
 
   // Danh hiệu tính theo vòng loại trực tiếp (koPts)
   const koRows = rows.filter(r => r.inKo);
@@ -2711,8 +2724,6 @@ function renderLeaderboard() {
   const kings = streakKingIds();
   const maxWrong = rows.reduce((mx, r) => Math.max(mx, r.koWrong), 0);
   const losers = (maxWrong >= 2) ? rows.filter(r => r.koWrong === maxWrong).map(r => r.uid) : [];
-  const warmHearts = warmHeartIds();
-  const myPositive = meId ? (phaseStats(meId, 'ko').pts > 0) : false;
 
   const total = rows.reduce((s, p) => s + p.total, 0);
   const totalEl = document.getElementById('total-pts');
@@ -2722,7 +2733,6 @@ function renderLeaderboard() {
     `${rows.length} người tham gia · ${rows.filter(p=>p.total<0).length} mạnh thường quân`;
 
   const crowns = ['👑','🥈','🥉'];
-  const note = `<div class="lb-note">💝 Hãy bố thí nhiều để nhận danh hiệu <b>Trái tim ấm áp</b>!</div>`;
   const cell = (lbl, v) => `<div style="flex:1;text-align:center">
       <div style="font-size:10px;color:var(--text2);font-weight:700">${lbl}</div>
       <div class="lb-cell ${v>=0?'pos':'neg'}">${fmtPts(v)}đ</div>
@@ -2731,20 +2741,11 @@ function renderLeaderboard() {
     ? `<p class="empty-msg">Chưa có dữ liệu xếp hạng</p>`
     : rows.map((p, i) => {
       const isMe = p.uid === meId;
-      // Khu vực bố thí (theo tiền KO)
-      let begHtml = '';
-      if (isBegging(p.uid)) {
-        begHtml = `<div class="beg-box">🙏 <b>${users[p.uid]?.name||''}</b> đang xin bố thí — "Xin hãy bố thí cho kẻ khốn khổ này"
-          ${(p.uid !== meId && myPositive) ? `<button class="beg-btn" onclick="openDonate('${p.uid}')">💝 Bố thí</button>` : ''}</div>`;
-      } else if (p.uid === meId && losers.includes(meId)) {
-        begHtml = `<div class="beg-box" style="text-align:center"><button class="beg-btn" onclick="startBegging()">😢 Xin donate</button></div>`;
-      }
-
       return `
         <div class="lb-card" style="flex-direction:column;align-items:stretch;gap:8px">
           <div style="display:flex;align-items:center;gap:10px">
             <div class="lb-rank r${i+1}">${i < 3 ? crowns[i] : i+1}</div>
-            <div class="lb-name" style="flex:1">${starWrap(p.uid, p.name)}${isMe?'<span class="me-badge">Bạn</span>':''}${isTopSpender(p.uid)?'<span class="spender-badge">🔥 Thánh nướng tiền</span>':''}${p.uid===sponsorNeg?'<span class="title-sponsor">🥇 Nhà tài trợ vàng</span>':''}${p.uid===tycoonPos?'<span class="title-tycoon">💰 Đại gia phố núi</span>':''}${kings.includes(p.uid)?'<span class="title-streak">⚡ Streak King</span>':''}${losers.includes(p.uid)?'<span class="title-loser">💩 Kẻ thất bại</span>':''}${warmHearts.includes(p.uid)?'<span class="title-warm">💝 Trái tim ấm áp</span>':''}</div>
+            <div class="lb-name" style="flex:1">${starWrap(p.uid, p.name)}${isMe?'<span class="me-badge">Bạn</span>':''}${isTopSpender(p.uid)?'<span class="spender-badge">🔥 Thánh nướng tiền</span>':''}${p.uid===sponsorNeg?'<span class="title-sponsor">🥇 Nhà tài trợ vàng</span>':''}${p.uid===tycoonPos?'<span class="title-tycoon">💰 Đại gia phố núi</span>':''}${kings.includes(p.uid)?'<span class="title-streak">⚡ Streak King</span>':''}${losers.includes(p.uid)?'<span class="title-loser">💩 Kẻ thất bại</span>':''}</div>
           </div>
           <div style="display:flex;gap:6px">
             ${cell('Vòng bảng', p.gPts)}
@@ -2754,9 +2755,9 @@ function renderLeaderboard() {
               <div class="lb-cell ${p.total>=0?'pos':'neg'}" style="font-weight:900;font-size:16px">${fmtPts(p.total)}đ</div>
             </div>
           </div>
-        </div>${begHtml}`;
+        </div>`;
     }).join('');
-  document.getElementById('lb-list').innerHTML = note + listHtml;
+  document.getElementById('lb-list').innerHTML = listHtml;
 }
 // ── Bố thí cho kẻ thất bại ──
 let donateToUid = null;
