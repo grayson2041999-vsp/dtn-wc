@@ -234,6 +234,21 @@
       -webkit-text-fill-color: transparent; animation: heroShine 3s linear infinite;
     }
     @keyframes heroShine { to { background-position: 200% center; } }
+    /* ===== CHÚC MỪNG NGƯỜI ĐOÁN TRÚNG CHUNG KẾT ===== */
+    .congrats-box {
+      border: 2px solid transparent; border-radius: 16px; padding: 14px 16px; margin-bottom: 14px;
+      background:
+        linear-gradient(#0a0f0c,#0a0f0c) padding-box,
+        linear-gradient(135deg,#ffd700,#ff8a00,#ff3d3d,#ffd700) border-box;
+      box-shadow: 0 0 20px rgba(255,215,0,.28); animation: heroPulse 2.6s ease-in-out infinite;
+    }
+    .congrats-box .cg-title {
+      text-align: center; font-size: 16px; font-weight: 900; letter-spacing: 1px; margin-bottom: 8px;
+      background: linear-gradient(90deg,#ffd700,#ff8a00,#ff3d3d,#ff8a00,#ffd700);
+      background-size: 200% auto; -webkit-background-clip: text; background-clip: text;
+      -webkit-text-fill-color: transparent; animation: heroShine 3s linear infinite;
+    }
+    .congrats-box .cg-line { font-size: 13px; line-height: 1.7; margin-top: 4px; }
     .match-card.final-hero {
       border: 2px solid transparent; border-radius: 18px; padding: 18px 16px;
       background:
@@ -2324,7 +2339,29 @@ function renderChampSection() {
       </div>`;
     }).join('') : '<p class="empty-msg" style="padding:14px 0">Chưa có ai đoán tỷ số chung kết.</p>'}`;
 
+  // 🎉 Dòng chúc mừng người đoán trúng tỷ số chung kết + đội vô địch (khi đã có kết quả)
+  const champion = getChampion();
+  const cgLines = [];
+  if (finalResult) {
+    const w = finalWinnerUids();
+    cgLines.push(w.length
+      ? `🎯 <b>Đoán trúng tỷ số chung kết ${finalResult}:</b> ${w.map(u => starWrap(u, users[u]?.name || '?')).join(', ')} — quá đỉnh! 🏆`
+      : `🎯 Tỷ số chung kết <b>${finalResult}</b> — tiếc là không ai đoán trúng, hoàn tiền cho tất cả.`);
+  }
+  if (champion) {
+    const cw = [];
+    Object.keys(champBets).forEach(uid => {
+      if (!users[uid]?.approved || users[uid]?.rejected) return;
+      if (userBets(uid).some(b => b.team === champion)) cw.push(uid);
+    });
+    if (cw.length) cgLines.push(`👑 <b>Đoán trúng nhà vô địch ${champFlag(champion)} ${champion}:</b> ${cw.map(u => starWrap(u, users[u]?.name || '?')).join(', ')} — thiên tài! 🎉`);
+  }
+  const congratsHtml = cgLines.length
+    ? `<div class="congrats-box"><div class="cg-title">🎉 CHÚC MỪNG! 🎉</div>${cgLines.map(l => `<div class="cg-line">${l}</div>`).join('')}</div>`
+    : '';
+
   return `
+    ${congratsHtml}
     <p class="section-title" style="margin-top:22px">🏆 Dự đoán kết quả chung kết</p>
     <p style="font-size:12px;color:var(--text2);margin:-4px 0 12px">Dựa trên tỷ số dự đoán ở Jackpot chung kết (tính cả bù giờ).</p>
     ${col(`<span style="font-size:22px">${champFlag(t1)}</span><b>${t1} thắng</b>`, win1)}
