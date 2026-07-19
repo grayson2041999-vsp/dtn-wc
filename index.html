@@ -1784,6 +1784,8 @@ function finalJackpotNet(uid) {
     if (X > 0) {
       const myCorrect = entries.filter(s => s === finalResult).length;
       net += myCorrect * (pot / X) + myCorrect * FINAL_BONUS;
+    } else {
+      net += FINAL_STAKE * entries.length; // không ai trúng → hoàn lại toàn bộ tiền đã đóng
     }
   }
   return Math.round(net);
@@ -2451,7 +2453,7 @@ function finalPosterHtml() {
     const myScores = slotKeys.map(scoreOf).filter(Boolean);
     const iWon = myScores.some(s => s === finalResult);
     body = `<div class="fp-line">Tỷ số toàn cuộc: <b>${finalResult}</b> · Hũ ${pot.toLocaleString('vi-VN')}đ · ${n} lượt</div>
-      <div class="fp-win">🏆 ${winners.length ? winners.map(u => starWrap(u, users[u]?.name||'?')).join(', ') : 'Không ai trúng'}${winners.length ? ` · mỗi lượt đúng +${(share+FINAL_BONUS).toLocaleString('vi-VN')}đ` : ''}</div>
+      <div class="fp-win">${winners.length ? `🏆 ${winners.map(u => starWrap(u, users[u]?.name||'?')).join(', ')} · mỗi lượt đúng +${(share+FINAL_BONUS).toLocaleString('vi-VN')}đ` : `😅 Không ai trúng — hoàn lại tiền cho tất cả (mỗi lượt +${FINAL_STAKE.toLocaleString('vi-VN')}đ)`}</div>
       ${myScores.length ? `<div style="color:${iWon?'var(--green)':'var(--text2)'};font-weight:700">Bạn đoán ${myScores.join(' · ')}${iWon?' — TRÚNG! 🎉':''}</div>` : ''}`;
   } else if (locked) {
     const disp = slotKeys.map(k => scoreOf(k) || '(chưa đoán)');
