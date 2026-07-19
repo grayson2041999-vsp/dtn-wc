@@ -234,21 +234,22 @@
       -webkit-text-fill-color: transparent; animation: heroShine 3s linear infinite;
     }
     @keyframes heroShine { to { background-position: 200% center; } }
-    /* ===== CHÚC MỪNG NGƯỜI ĐOÁN TRÚNG CHUNG KẾT ===== */
-    .congrats-box {
-      border: 2px solid transparent; border-radius: 16px; padding: 14px 16px; margin-bottom: 14px;
+    /* ===== CHÚC MỪNG NGƯỜI ĐOÁN TRÚNG CHUNG KẾT (chạy ngang) ===== */
+    .cg-marquee {
+      overflow: hidden; white-space: nowrap; border: 2px solid transparent;
+      border-radius: 14px; padding: 10px 0; margin-bottom: 14px;
       background:
         linear-gradient(#0a0f0c,#0a0f0c) padding-box,
         linear-gradient(135deg,#ffd700,#ff8a00,#ff3d3d,#ffd700) border-box;
-      box-shadow: 0 0 20px rgba(255,215,0,.28); animation: heroPulse 2.6s ease-in-out infinite;
+      box-shadow: 0 0 18px rgba(255,215,0,.28);
     }
-    .congrats-box .cg-title {
-      text-align: center; font-size: 16px; font-weight: 900; letter-spacing: 1px; margin-bottom: 8px;
-      background: linear-gradient(90deg,#ffd700,#ff8a00,#ff3d3d,#ff8a00,#ffd700);
-      background-size: 200% auto; -webkit-background-clip: text; background-clip: text;
-      -webkit-text-fill-color: transparent; animation: heroShine 3s linear infinite;
+    .cg-mtrack {
+      display: inline-block; white-space: nowrap; font-size: 14px; font-weight: 800;
+      color: var(--gold); animation: cgScroll 22s linear infinite;
     }
-    .congrats-box .cg-line { font-size: 13px; line-height: 1.7; margin-top: 4px; }
+    .cg-mtrack b { color: #fff; }
+    .cg-marquee:hover .cg-mtrack { animation-play-state: paused; }
+    @keyframes cgScroll { from { transform: translateX(0); } to { transform: translateX(-50%); } }
     .match-card.final-hero {
       border: 2px solid transparent; border-radius: 18px; padding: 18px 16px;
       background:
@@ -2339,26 +2340,35 @@ function renderChampSection() {
       </div>`;
     }).join('') : '<p class="empty-msg" style="padding:14px 0">Chưa có ai đoán tỷ số chung kết.</p>'}`;
 
-  // 🎉 Dòng chúc mừng người đoán trúng tỷ số chung kết + đội vô địch (khi đã có kết quả)
+  // 🎉 Dòng chữ chạy ngang chúc mừng người đoán trúng — kèm SỐ TIỀN nhận được
   const champion = getChampion();
-  const cgLines = [];
+  const cgMsgs = [];
   if (finalResult) {
     const w = finalWinnerUids();
-    cgLines.push(w.length
-      ? `🎯 <b>Đoán trúng tỷ số chung kết ${finalResult}:</b> ${w.map(u => starWrap(u, users[u]?.name || '?')).join(', ')} — quá đỉnh! 🏆`
-      : `🎯 Tỷ số chung kết <b>${finalResult}</b> — tiếc là không ai đoán trúng, hoàn tiền cho tất cả.`);
+    if (w.length) {
+      const share = finalShare(); // chia hũ thực tế (pot / số lượt đúng)
+      w.forEach(uid => {
+        const nCorrect = finalEntriesOf(uid).filter(s => s === finalResult).length;
+        const amt = nCorrect * (share + FINAL_BONUS);
+        cgMsgs.push(`🎯 Chúc mừng <b>${users[uid]?.name || '?'}</b> đoán trúng tỷ số chung kết ${finalResult} — nhận <b>+${amt.toLocaleString('vi-VN')}đ</b> từ Jackpot! 🏆`);
+      });
+    } else {
+      cgMsgs.push(`🎯 Tỷ số chung kết ${finalResult} — không ai đoán trúng, hoàn lại ${FINAL_STAKE.toLocaleString('vi-VN')}đ/lượt cho tất cả.`);
+    }
   }
   if (champion) {
-    const cw = [];
     Object.keys(champBets).forEach(uid => {
       if (!users[uid]?.approved || users[uid]?.rejected) return;
-      if (userBets(uid).some(b => b.team === champion)) cw.push(uid);
+      const win = userBets(uid).filter(b => b.team === champion)
+                              .reduce((s, b) => s + Math.round(b.stake * b.odds), 0);
+      if (win > 0) cgMsgs.push(`👑 Chúc mừng <b>${users[uid]?.name || '?'}</b> đoán trúng nhà vô địch ${champFlag(champion)} ${champion} — nhận <b>+${win.toLocaleString('vi-VN')}đ</b>! 🎉`);
     });
-    if (cw.length) cgLines.push(`👑 <b>Đoán trúng nhà vô địch ${champFlag(champion)} ${champion}:</b> ${cw.map(u => starWrap(u, users[u]?.name || '?')).join(', ')} — thiên tài! 🎉`);
   }
-  const congratsHtml = cgLines.length
-    ? `<div class="congrats-box"><div class="cg-title">🎉 CHÚC MỪNG! 🎉</div>${cgLines.map(l => `<div class="cg-line">${l}</div>`).join('')}</div>`
-    : '';
+  let congratsHtml = '';
+  if (cgMsgs.length) {
+    const track = cgMsgs.join('　🎉　') + '　🎉　';
+    congratsHtml = `<div class="cg-marquee"><span class="cg-mtrack">${track}${track}</span></div>`;
+  }
 
   return `
     ${congratsHtml}
