@@ -2300,12 +2300,35 @@ function renderChampSection() {
       ${body}`;
   }
 
+  // 📋 Tất cả tỷ số dự đoán chung kết (công khai) — gom theo tỷ số
+  const byScore = {};
+  Object.entries(finalPreds).forEach(([uid, slots]) => {
+    if (!users[uid]?.approved || users[uid]?.rejected) return;
+    Object.values(slots || {}).forEach(v => {
+      if (typeof v === 'string' && /^\d+-\d+$/.test(v)) (byScore[v] = byScore[v] || []).push(uid);
+    });
+  });
+  const scoreEntries = Object.entries(byScore).sort((a, b) => b[1].length - a[1].length);
+  const allScoresHtml = `
+    <p class="section-title" style="margin-top:22px">📋 Tất cả tỷ số dự đoán chung kết</p>
+    ${scoreEntries.length ? scoreEntries.map(([s, uids]) => {
+      const uniq = [...new Set(uids)];
+      return `<div class="card">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+          <b style="font-size:18px;color:var(--gold)">${s}</b>
+          <span style="margin-left:auto;color:var(--accent);font-weight:800">${uids.length} lượt</span>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px">${uniq.map(uid => `<span class="predictor-chip ${uid === currentUser.id ? 'me' : 'done'}">${starWrap(uid, users[uid].name)}</span>`).join('')}</div>
+      </div>`;
+    }).join('') : '<p class="empty-msg" style="padding:14px 0">Chưa có ai đoán tỷ số chung kết.</p>'}`;
+
   return `
     <p class="section-title" style="margin-top:22px">🏆 Dự đoán kết quả chung kết</p>
     <p style="font-size:12px;color:var(--text2);margin:-4px 0 12px">Dựa trên tỷ số dự đoán ở Jackpot chung kết (tính cả bù giờ).</p>
     ${col(`<span style="font-size:22px">${champFlag(t1)}</span><b>${t1} thắng</b>`, win1)}
     ${col(`<span style="font-size:22px">🤝</span><b>Hoà</b>`, drawU)}
     ${col(`<span style="font-size:22px">${champFlag(t2)}</span><b>${t2} thắng</b>`, win2)}
+    ${allScoresHtml}
     ${rewardHtml}`;
 }
 function renderMatchCard(m, resolved) {
