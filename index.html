@@ -2172,68 +2172,81 @@ function setFilter(el, f) {
   currentFilter = f;
   renderMatches();
 }
+// TRANG TRẬN ĐẤU = BẢNG VINH DANH: chúc mừng người đoán trúng tỷ số chung kết + đội vô địch (kèm tiền thưởng)
 function renderMatches() {
   if (!currentUser) return;
-  const resolved = resolveTeams();
   const el = document.getElementById('matches-list');
+  const resolved = resolveTeams();
+  const fm = resolved[FINAL_ID] || {};
+  const champion = getChampion();
 
-  // ── CHẾ ĐỘ CUỐI GIẢI: mặc định chỉ hiện tranh hạng 3 + chung kết ──
-  if (!showPast) {
-    const finale = MATCHES.filter(m => FINALE_IDS.includes(m.id))
-                          .sort((a,b) => a.id - b.id);   // 103 trước, 104 (chung kết) sau
-    const cards = finale.map(m => renderMatchCard(m, resolved)).join('');
-    el.innerHTML = cards + renderChampSection() + `
-      <div style="text-align:center;margin:18px 0 8px">
-        <button class="show-past-btn" onclick="toggleShowPast()">🔙 Xem lại các trận đã đá</button>
-      </div>`;
-    return;
-  }
-
-  let list = MATCHES;
-  if (currentFilter === 'open')    list = MATCHES.filter(m => teamsResolved(m,resolved) && !isLocked(m) && !results[m.id]);
-  if (currentFilter === 'pending') list = MATCHES.filter(m => teamsResolved(m,resolved) && !isLocked(m) && !getPred(m.id, currentUser.id));
-  if (currentFilter === 'done')    list = MATCHES.filter(m => results[m.id]);
-
-  // Ẩn trận đã có kết quả mà đoán sai (trừ khi bật showAllResults)
-  if (!showAllResults) {
-    list = list.filter(m => {
-      if (!results[m.id]) return true; // chưa có kết quả → hiện
-      return isUserWon(m.id);          // có kết quả → chỉ hiện nếu thắng
-    });
-  }
-
-  const lostCount = MATCHES.filter(m => results[m.id] && !isUserWon(m.id)).length;
-
-  // Gom theo vòng (giữ thứ tự id)
-  const byRound = {}; const order = [];
-  list.forEach(m => { if (!byRound[m.round]) { byRound[m.round] = []; order.push(m.round); } byRound[m.round].push(m); });
-
-  // Nút thu gọn về 2 trận cuối
-  const collapseHtml = `
-    <div style="text-align:center;margin:8px 0 4px">
-      <button class="show-past-btn" onclick="toggleShowPast()">🏆 Chỉ xem 2 trận cuối</button>
+  // Thẻ 1 người trúng
+  const winCard = (uid, amount, tag, ico) => `
+    <div class="lb-card" style="align-items:center;gap:10px">
+      <div style="font-size:26px">${ico}</div>
+      <div style="flex:1">
+        <div class="lb-name">${starWrap(uid, users[uid]?.name || '?')}${uid === currentUser.id ? '<span class="me-badge">Bạn</span>' : ''}</div>
+        <div class="lb-sub">${tag}</div>
+      </div>
+      <div class="lb-pts pos">+${amount.toLocaleString('vi-VN')}đ</div>
     </div>`;
 
-  // Nút hiển thị tất cả (trận thua)
-  const btnHtml = lostCount > 0 ? `
-    <div style="text-align:center;margin:12px 0">
-      <button id="btn-show-all" onclick="toggleShowAll()"
-        style="background:none;border:1px solid var(--border);border-radius:20px;
-               color:var(--text2);font-size:12px;font-weight:700;padding:6px 16px;cursor:pointer">
-        ${showAllResults ? 'Ẩn trận thua' : `Hiển thị tất cả (${lostCount} trận thua)`}
-      </button>
-    </div>` : '';
+  // ── Băng chữ chạy ngang chúc mừng (kèm tiền) ──
+  const cgMsgs = [];
 
-  if (!list.length && !lostCount) { el.innerHTML = collapseHtml + '<p class="empty-msg">Không có trận nào</p>'; return; }
+  // ── Mục 1: Đoán trúng tỷ số chung kết ──
+  let finalHtml;
+  if (finalResult) {
+    const w = finalWinnerUids();
+    if (w.length) {
+      const share = finalShare();
+      const rows = w.map(uid => ({ uid, amt: finalEntriesOf(uid).filter(s => s === finalResult).length * (share + FINAL_BONUS) }))
+                    .sort((a, b) => b.amt - a.amt);
+      finalHtml = rows.map(r => {
+        cgMsgs.push(`🎯 Chúc mừng <b>${users[r.uid]?.name || '?'}</b> đoán trúng tỷ số chung kết ${finalResult} — nhận <b>+${r.amt.toLocaleString('vi-VN')}đ</b>! 🏆`);
+        return winCard(r.uid, r.amt, `Đoán trúng tỷ số chung kết ${finalResult}`, '🎯');
+      }).join('');
+    } else {
+      finalHtml = `<p class="empty-msg" style="padding:14px 0">😅 Không ai đoán trúng tỷ số chung kết ${finalResult} — đã hoàn lại ${FINAL_STAKE.toLocaleString('vi-VN')}đ/lượt cho tất cả.</p>`;
+    }
+  } else {
+    finalHtml = `<p class="empty-msg" style="padding:14px 0">⏳ Chờ kết quả chung kết${fm.team1 && fm.team2 ? ` (${fm.team1} vs ${fm.team2})` : ''}...</p>`;
+  }
 
-  const matchesHtml = list.length
-    ? order.map(r => `
-        <div class="date-label">${r}</div>
-        ${byRound[r].map(m => renderMatchCard(m, resolved)).join('')}
-      `).join('')
-    : '<p class="empty-msg" style="padding:20px 0">Chưa có trận thắng nào</p>';
+  // ── Mục 2: Đoán trúng nhà vô địch ──
+  let champHtml;
+  if (champion) {
+    const rows = [];
+    Object.keys(champBets).forEach(uid => {
+      if (!users[uid]?.approved || users[uid]?.rejected) return;
+      const win = userBets(uid).filter(b => b.team === champion).reduce((s, b) => s + Math.round(b.stake * b.odds), 0);
+      if (win > 0) rows.push({ uid, win });
+    });
+    rows.sort((a, b) => b.win - a.win);
+    champHtml = rows.length
+      ? rows.map(r => {
+          cgMsgs.push(`👑 Chúc mừng <b>${users[r.uid]?.name || '?'}</b> đoán trúng nhà vô địch ${champFlag(champion)} ${champion} — nhận <b>+${r.win.toLocaleString('vi-VN')}đ</b>! 🎉`);
+          return winCard(r.uid, r.win, `Đoán trúng nhà vô địch ${champFlag(champion)} ${champion}`, '👑');
+        }).join('')
+      : `<p class="empty-msg" style="padding:14px 0">Không ai cược trúng nhà vô địch ${champFlag(champion)} ${champion}.</p>`;
+  } else {
+    champHtml = `<p class="empty-msg" style="padding:14px 0">⏳ Chờ xác định nhà vô địch...</p>`;
+  }
 
-  el.innerHTML = collapseHtml + matchesHtml + btnHtml;
+  // Băng chạy ngang (nếu có người trúng)
+  let marquee = '';
+  if (cgMsgs.length) {
+    const track = cgMsgs.join('　🎉　') + '　🎉　';
+    marquee = `<div class="cg-marquee"><span class="cg-mtrack">${track}${track}</span></div>`;
+  }
+
+  el.innerHTML = `
+    ${marquee}
+    <div class="final-hero-crown">🏆 VINH DANH CHUNG KẾT WORLD CUP 2026 🏆</div>
+    <p class="section-title" style="margin-top:14px">🎯 Đoán trúng tỷ số chung kết</p>
+    ${finalHtml}
+    <p class="section-title" style="margin-top:22px">👑 Đoán trúng nhà vô địch</p>
+    ${champHtml}`;
 }
 // 🏆 Thống kê dự đoán kết quả chung kết — suy từ tỷ số Jackpot chung kết
 function renderChampSection() {
