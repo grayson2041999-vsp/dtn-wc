@@ -1003,7 +1003,7 @@
   </div>
   <p class="section-title">Bảng xếp hạng tổng (vòng bảng + vòng loại trực tiếp)</p>
   <div id="lb-list"></div>
-  <p class="section-title" style="margin-top:24px">🎯 Tỷ lệ đoán trúng (cả giải)</p>
+  <p class="section-title" style="margin-top:24px">🎯 Số trận đoán trúng (cả giải)</p>
   <p style="font-size:12px;color:var(--text2);margin:-6px 0 10px">Số trận đoán đúng / số trận đã đoán (đã có kết quả) · tính từ đầu giải.</p>
   <div id="accuracy-list"></div>
 </div>
@@ -2898,26 +2898,23 @@ function renderAccuracyList() {
     .filter(([, u]) => u.approved && !u.rejected)
     .map(([uid, u]) => ({ uid, name: u.name, ...accuracyOf(uid) }))
     .filter(r => r.total > 0)
-    .sort((a, b) => (b.rate - a.rate) || (b.correct - a.correct) || (b.total - a.total));
+    .sort((a, b) => (b.correct - a.correct) || (a.total - b.total));
 
   if (!rows.length) { el.innerHTML = '<p class="empty-msg">Chưa có ai đoán trận nào có kết quả.</p>'; return; }
 
   const medals = ['🥇','🥈','🥉'];
   el.innerHTML = rows.map((r, i) => {
-    const pct = Math.round(r.rate * 100);
     const isMe = r.uid === meId;
     return `
       <div class="lb-card" style="align-items:center;gap:10px">
         <div class="lb-rank r${i+1}">${i < 3 ? medals[i] : i+1}</div>
         <div style="flex:1">
           <div class="lb-name">${starWrap(r.uid, r.name)}${isMe ? '<span class="me-badge">Bạn</span>' : ''}</div>
-          <div class="lb-sub">Đoán đúng <b>${r.correct}/${r.total}</b> trận</div>
-          <div style="height:6px;background:var(--card2);border-radius:6px;margin-top:6px;overflow:hidden">
-            <div style="height:100%;width:${pct}%;background:linear-gradient(90deg,var(--green),var(--gold))"></div>
-          </div>
+          <div class="lb-sub">Đã đoán ${r.total} trận</div>
         </div>
-        <div style="text-align:right;min-width:52px">
-          <div style="font-weight:900;font-size:18px;color:var(--gold)">${pct}%</div>
+        <div style="text-align:right;min-width:70px">
+          <div><span style="font-weight:900;font-size:24px;color:var(--gold);text-shadow:0 0 10px rgba(255,215,0,.35)">${r.correct}</span><span style="color:var(--text2);font-weight:700;font-size:15px">/${r.total}</span></div>
+          <div style="font-size:10px;color:var(--text2);font-weight:700">TRẬN ĐÚNG</div>
         </div>
       </div>`;
   }).join('');
